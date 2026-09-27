@@ -1,0 +1,6 @@
+id=keep-twrp
+name=Keep TWRP (Anti-Recovery-Restore)
+version=v1.0.0
+versionCode=100
+author=MultiForge
+description=Prevents Samsung ROM from overwriting custom recovery by neutralizing install-recovery.sh and recovery-from-boot.p on system and vendor.
