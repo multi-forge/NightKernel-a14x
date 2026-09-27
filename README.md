@@ -27,7 +27,20 @@
 
 Built from a clean, field-tested 1:1 hardware baseline, NightKernel combines deep gaming and emulation enhancements (native NTSync driver and System V IPC), kernel-level root hiding (SuSFS 2.1.0 and ReSukiSU 3.0.0), active hardware defense (Baseband Guard LSM), advanced display calibration (KCAL Color Control), and an **Autonomous Recovery** engine that eliminates Samsung's requirement of a connected USB cable or PC to access TWRP.
 
+> [!WARNING]
+> ```text
+> * Your warranty is now void.
+> *
+> * I am not responsible for bricked devices, dead SD cards, thermonuclear war,
+> * or you getting fired because the alarm app failed. Please do some research
+> * if you have any concerns about features included in this kernel before flashing it!
+> *
+> * YOU are choosing to make these modifications, and if you point the finger at me
+> * for messing up your device, I will laugh at you.
+> ```
+
 ---
+
 
 ## ⚡ Quick Feature Matrix
 
