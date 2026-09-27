@@ -1,0 +1,7 @@
+v1.*/
+*.img
+*.tar
+*.zip
+Image
+.ccache
+*.log
