@@ -134,11 +134,35 @@ To ensure system freedom, eliminate kernel lockups, and prevent OEM telemetry ov
 
 ---
 
+## 📱 Device Compatibility & Model Matrix
+
+NightKernel is engineered strictly for the Samsung Exynos 1330 (`s5e8535` / `a14x`) platform. Review the compatibility matrix below before flashing:
+
+| Model | Market / Region | Chipset / SoC | Compatibility Status | Notes |
+|---|---|---|:---:|---|
+| **SM-A146M / DS** | Latin America / Brazil | Samsung Exynos 1330 (`s5e8535`) | 🟢 **Supported** | 100% Field-tested and validated in production |
+| **SM-A146B / DS** | Global / Europe / India / Asia | Samsung Exynos 1330 (`s5e8535`) | 🟢 **Supported** | Unified kernel codebase (`a146b-a146m`); 100% hardware match |
+| **SM-A146U / U1** | United States (Carrier / Unlocked) | MediaTek Dimensity 700 (`MT6833`) | 🔴 **NOT SUPPORTED** | **DO NOT FLASH!** Incompatible MediaTek architecture |
+| **SM-S146VL** | USA (TracFone / Straight Talk) | MediaTek Dimensity 700 (`MT6833`) | 🔴 **NOT SUPPORTED** | **DO NOT FLASH!** Incompatible MediaTek hardware |
+
+### 🔍 Why SM-A146B is 100% Compatible:
+1. **Unified Kernel Source Tree:** Samsung develops and releases the exact same unified kernel source tree for both models (`a146b-a146m`).
+2. **Identical Hardware Architecture:** Both `SM-A146B` and `SM-A146M` share the exact same motherboard reference (`erd8535`), Exynos 1330 SoC, Mali-G68 GPU, Realtek RT5691 audio codec, DQE display pipeline, and MMC/UFS storage controllers. Region differences are limited to cellular RF band filters configured in the baseband firmware (`modem.bin` / `/efs`), which NightKernel protects and leaves untouched via Baseband Guard.
+3. **Seamless AnyKernel3 Installation:** The AnyKernel3 installer script (`NightKernel-v1.2.0-a14x.zip`) includes both `SM-A146M` and `SM-A146B` in its device check (`device.name5=SM-A146B`). When installed via TWRP, AnyKernel3 extracts the device's native boot image header and dynamically injects the NightKernel `Image`, ensuring complete retention of device-specific flags and signatures.
+
+> [!WARNING]
+> **US Model Incompatibility Warning:** Galaxy A14 5G models sold in the United States (`SM-A146U`, `SM-A146U1`, `SM-S146VL`) are equipped with a **MediaTek Dimensity 700** chipset, NOT an Exynos SoC. Flashing NightKernel on these US models will hard-brick the device!
+
+> [!IMPORTANT]
+> **Android 15 Requirement:** Your `SM-A146B` must be running **Android 15 (One UI 7)**. Flashing this kernel on Android 13 or 14 will result in boot failure due to kernel ABI mismatches with older `vendor_boot` proprietary modules.
+
+---
+
 ## 📱 Build & Hardware Specifications
 
 | Specification | Target Details |
 |---|---|
-| **Target Device** | Samsung Galaxy A14 5G (`SM-A146M`, `SM-A146M/DS`, `SM-A146B`) |
+| **Target Device** | Samsung Galaxy A14 5G (`SM-A146M`, `SM-A146M/DS`, `SM-A146B`, `SM-A146B/DS`) |
 | **Board / Platform** | `a14x` / `s5e8535` |
 | **SoC / Processor** | Samsung Exynos 1330 Octa-Core (2x Cortex-A78 @ 2.4 GHz + 6x Cortex-A55 @ 2.0 GHz) |
 | **GPU** | ARM Mali-G68 MP2 |
