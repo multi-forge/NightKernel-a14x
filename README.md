@@ -1,4 +1,4 @@
-# 🌌 NightKernel for Samsung Galaxy A14 5G
+# 🌌  NightKernel for Samsung Galaxy A14 5G
 
 <div align="center">
   <a href="README.md"><img src="https://img.shields.io/badge/Language-English-blue?style=for-the-badge" alt="English"></a>
@@ -12,9 +12,7 @@
   <img src="https://img.shields.io/badge/Android-15%20(One%20UI%207)-green?style=for-the-badge&logo=android" alt="Android Version">
   <img src="https://img.shields.io/badge/SoC-Exynos%201330%20(s5e8535)-orange?style=for-the-badge" alt="SoC">
   <img src="https://img.shields.io/badge/Root-ReSukiSU%20%2B%20SuSFS%202.1.0-brightgreen?style=for-the-badge" alt="SuSFS">
-  <img src="https://img.shields.io/badge/Gaming-NTSync%20Enabled%20(0666)-purple?style=for-the-badge" alt="NTSync">
   <img src="https://img.shields.io/badge/Recovery-Autonomous%20PMU%20(No%20Cable)-red?style=for-the-badge" alt="Autonomous Recovery">
-  <img src="https://img.shields.io/badge/Build-Production%20Stable%20🟢-brightgreen?style=for-the-badge" alt="Build Status">
 </p>
 
 <p align="center">
