@@ -26,7 +26,21 @@ O **NightKernel** é um custom kernel de alto desempenho, desenvolvido sob medid
 
 Construído a partir de uma compilação 1:1 rigorosamente homologada, o projeto combina otimizações profundas de gaming e emulação (driver NTSync nativo e System V IPC), evasão avançada de integridade de sistema (SuSFS 2.1.0 e ReSukiSU 3.0.0), segurança ativa de hardware (Baseband Guard LSM), controle de exibição de tela (KCAL Color Control) e um sistema exclusivo de **Recovery Autônomo** que liberta o usuário da necessidade de cabos USB ou computadores para acessar o TWRP.
 
+> [!WARNING]
+> ```text
+> * Sua garantia agora está anulada.
+> *
+> * Eu não me responsabilizo por dispositivos brickados, cartões SD mortos,
+> * guerras termonucleares ou por você ser demitido porque o aplicativo de alarme falhou.
+> * Por favor, pesquise se você tiver alguma dúvida sobre os recursos incluídos
+> * neste kernel antes de instalá-lo!
+> *
+> * VOCÊ está escolhendo fazer essas modificações, e se você apontar o dedo para mim
+> * por estragar o seu dispositivo, eu vou rir da sua cara.
+> ```
+
 ---
+
 
 ## ⚡ Tabela Rápida de Recursos
 
