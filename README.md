@@ -12,7 +12,6 @@
   <img src="https://img.shields.io/badge/Android-15%20(One%20UI%207)-green?style=for-the-badge&logo=android" alt="Android Version">
   <img src="https://img.shields.io/badge/SoC-Exynos%201330%20(s5e8535)-orange?style=for-the-badge" alt="SoC">
   <img src="https://img.shields.io/badge/Root-ReSukiSU%20%2B%20SuSFS%202.1.0-brightgreen?style=for-the-badge" alt="SuSFS">
-  <img src="https://img.shields.io/badge/Recovery-Autonomous%20PMU%20(No%20Cable)-red?style=for-the-badge" alt="Autonomous Recovery">
 </p>
 
 <p align="center">
