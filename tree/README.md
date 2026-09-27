@@ -1,150 +1,79 @@
-# How do I submit patches to Android Common Kernels
+# Samsung Galaxy A14 5G (`a14x` / `s5e8535`) Kernel Source Tree
 
-1. BEST: Make all of your changes to upstream Linux. If appropriate, backport to the stable releases.
-   These patches will be merged automatically in the corresponding common kernels. If the patch is already
-   in upstream Linux, post a backport of the patch that conforms to the patch requirements below.
-   - Do not send patches upstream that contain only symbol exports. To be considered for upstream Linux,
-additions of `EXPORT_SYMBOL_GPL()` require an in-tree modular driver that uses the symbol -- so include
-the new driver or changes to an existing driver in the same patchset as the export.
-   - When sending patches upstream, the commit message must contain a clear case for why the patch
-is needed and beneficial to the community. Enabling out-of-tree drivers or functionality is not
-not a persuasive case.
+<p align="center">
+  <img src="https://img.shields.io/badge/Base-physwizz%20V--sd--perm-blueviolet?style=for-the-badge&logo=linux" alt="Base">
+  <img src="https://img.shields.io/badge/Target-SM--A146M%20%7C%20SM--A146B-blue?style=for-the-badge&logo=samsung" alt="Device">
+  <img src="https://img.shields.io/badge/SoC-Exynos%201330%20(s5e8535)-orange?style=for-the-badge" alt="SoC">
+  <img src="https://img.shields.io/badge/Android-15%20(One%20UI%207)-green?style=for-the-badge&logo=android" alt="Android">
+  <img src="https://img.shields.io/badge/Status-Production%20Booted%20🟢-brightgreen?style=for-the-badge" alt="Status">
+</p>
 
-2. LESS GOOD: Develop your patches out-of-tree (from an upstream Linux point-of-view). Unless these are
-   fixing an Android-specific bug, these are very unlikely to be accepted unless they have been
-   coordinated with kernel-team@android.com. If you want to proceed, post a patch that conforms to the
-   patch requirements below.
+---
 
-# Common Kernel patch requirements
+### ⚠️ DISCLAIMER / LIABILITY NOTICE
 
-- All patches must conform to the Linux kernel coding standards and pass `scripts/checkpatch.pl`
-- Patches shall not break gki_defconfig or allmodconfig builds for arm, arm64, x86, x86_64 architectures
-(see  https://source.android.com/setup/build/building-kernels)
-- If the patch is not merged from an upstream branch, the subject must be tagged with the type of patch:
-`UPSTREAM:`, `BACKPORT:`, `FROMGIT:`, `FROMLIST:`, or `ANDROID:`.
-- All patches must have a `Change-Id:` tag (see https://gerrit-review.googlesource.com/Documentation/user-changeid.html)
-- If an Android bug has been assigned, there must be a `Bug:` tag.
-- All patches must have a `Signed-off-by:` tag by the author and the submitter
+> [!WARNING]
+> ```text
+> * Your warranty is now void.
+> *
+> * I am not responsible for bricked devices, dead SD cards, thermonuclear war,
+> * or you getting fired because the alarm app failed. Please do some research
+> * if you have any concerns about features included in this kernel before flashing it!
+> *
+> * YOU are choosing to make these modifications, and if you point the finger at me
+> * for messing up your device, I will laugh at you.
+> *
+> * Flashing custom kernels, rooting, and bypassing security mechanisms involves
+> * inherent risks. You proceed entirely at your own risk.
+> ```
 
-Additional requirements are listed below based on patch type
+---
 
-## Requirements for backports from mainline Linux: `UPSTREAM:`, `BACKPORT:`
+## 📌 Kernel Source Overview
 
-- If the patch is a cherry-pick from Linux mainline with no changes at all
-    - tag the patch subject with `UPSTREAM:`.
-    - add upstream commit information with a `(cherry picked from commit ...)` line
-    - Example:
-        - if the upstream commit message is
-```
-        important patch from upstream
+This directory (`tree/`) contains the complete, verified, and production-booted kernel source code for the **Samsung Galaxy A14 5G** (`SM-A146M` and `SM-A146B`), based on the proven **physwizz** source tree (`V-sd-perm`) for **Android 15 / One UI 7 (PDA: `A146MUBSDDZE1`, Binary D)**.
 
-        This is the detailed description of the important patch
+All production patches are already merged and active in this source tree:
+1. **Autonomous Recovery Subsystem:** Kernel-level `/proc/nightkernel_reboot` interface and hardware key handler that bypasses Samsung's requirement for a connected USB cable.
+2. **SuSFS v2.1.0:** Kernel-level virtual file system isolation for KernelSU, hiding root from detection mechanisms (Play Integrity Strong, banking apps).
+3. **ReSukiSU v3.0.0:** Modern KernelSU implementation with security safeguards.
+4. **NTSync (Windows NT Synchronization):** Native driver (`/dev/ntsync`) accelerating multi-threaded Windows emulation (Mobox, Winlator, Termux-Box).
+5. **DroidSpaces:** Enhanced Linux container namespace support (LXC, Docker in Termux).
+6. **Baseband Guard (BBG):** Security LSM preventing unauthorized baseband access and malicious modem commands.
+7. **KCAL DQE Driver:** Custom hardware/software RGB color calibration, saturation, and contrast control.
+8. **MMC Software CRC Bypass:** Optimized microSD and eMMC I/O throughput (up to 30% speedup).
 
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
-```
->- then Joe Smith would upload the patch for the common kernel as
-```
-        UPSTREAM: important patch from upstream
+---
 
-        This is the detailed description of the important patch
+## 🛠️ Compilation Guide
 
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
+### Requirements
+- **Host OS:** Linux (Ubuntu 22.04 / 24.04 recommended)
+- **Toolchain:** Android AOSP Clang 18 (r522817) or newer
+- **Cross-Compiler:** AArch64 GCC 12+ / LLVM binutils
 
-        Bug: 135791357
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        (cherry picked from commit c31e73121f4c1ec41143423ac6ce3ce6dafdcec1)
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
-```
+### Build Commands
+```bash
+# 1. Set environment variables
+export ARCH=arm64
+export SUBARCH=arm64
+export CROSS_COMPILE=aarch64-linux-gnu-
+export CLANG_TRIPLE=aarch64-linux-gnu-
+export PATH=/path/to/clang-r522817/bin:$PATH
 
-- If the patch requires any changes from the upstream version, tag the patch with `BACKPORT:`
-instead of `UPSTREAM:`.
-    - use the same tags as `UPSTREAM:`
-    - add comments about the changes under the `(cherry picked from commit ...)` line
-    - Example:
-```
-        BACKPORT: important patch from upstream
+# 2. Load NightKernel production defconfig
+make CC=clang LLVM=1 nightkernel_v1.2_defconfig
 
-        This is the detailed description of the important patch
-
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
-
-        Bug: 135791357
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        (cherry picked from commit c31e73121f4c1ec41143423ac6ce3ce6dafdcec1)
-        [joe: Resolved minor conflict in drivers/foo/bar.c ]
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
+# 3. Compile kernel image
+make -j$(nproc) CC=clang LLVM=1 Image
 ```
 
-## Requirements for other backports: `FROMGIT:`, `FROMLIST:`,
+The output kernel image will be generated at `arch/arm64/boot/Image`.
 
-- If the patch has been merged into an upstream maintainer tree, but has not yet
-been merged into Linux mainline
-    - tag the patch subject with `FROMGIT:`
-    - add info on where the patch came from as `(cherry picked from commit <sha1> <repo> <branch>)`. This
-must be a stable maintainer branch (not rebased, so don't use `linux-next` for example).
-    - if changes were required, use `BACKPORT: FROMGIT:`
-    - Example:
-        - if the commit message in the maintainer tree is
-```
-        important patch from upstream
+---
 
-        This is the detailed description of the important patch
-
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
-```
->- then Joe Smith would upload the patch for the common kernel as
-```
-        FROMGIT: important patch from upstream
-
-        This is the detailed description of the important patch
-
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
-
-        Bug: 135791357
-        (cherry picked from commit 878a2fd9de10b03d11d2f622250285c7e63deace
-         https://git.kernel.org/pub/scm/linux/kernel/git/foo/bar.git test-branch)
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
-```
-
-
-- If the patch has been submitted to LKML, but not accepted into any maintainer tree
-    - tag the patch subject with `FROMLIST:`
-    - add a `Link:` tag with a link to the submittal on lore.kernel.org
-    - add a `Bug:` tag with the Android bug (required for patches not accepted into
-a maintainer tree)
-    - if changes were required, use `BACKPORT: FROMLIST:`
-    - Example:
-```
-        FROMLIST: important patch from upstream
-
-        This is the detailed description of the important patch
-
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
-
-        Bug: 135791357
-        Link: https://lore.kernel.org/lkml/20190619171517.GA17557@someone.com/
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
-```
-
-## Requirements for Android-specific patches: `ANDROID:`
-
-- If the patch is fixing a bug to Android-specific code
-    - tag the patch subject with `ANDROID:`
-    - add a `Fixes:` tag that cites the patch with the bug
-    - Example:
-```
-        ANDROID: fix android-specific bug in foobar.c
-
-        This is the detailed description of the important fix
-
-        Fixes: 1234abcd2468 ("foobar: add cool feature")
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
-```
-
-- If the patch is a new feature
-    - tag the patch subject with `ANDROID:`
-    - add a `Bug:` tag with the Android bug (required for android-specific features)
-
+## 🔗 Related Resources
+- **NightKernel Releases:** [multi-forge/NightKernel-a14x/releases](https://github.com/multi-forge/NightKernel-a14x/releases)
+- **TWRP Device Tree:** [tree-recovery/](https://github.com/multi-forge/NightKernel-a14x/tree/main/tree-recovery)
+- **Official Recovery Repo:** [multi-forge/android_device_samsung_a14x](https://github.com/multi-forge/android_device_samsung_a14x)
+- **Upstream Baseline:** [physwizz/a146b-a146m](https://github.com/physwizz/a146b-a146m) (branch `V-sd-perm`)
