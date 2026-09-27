@@ -1,248 +1,133 @@
-# 🌌 NightKernel for Samsung Galaxy A14 5G (SM-A146M / SM-A146B)
+# 🌌 NightKernel for Samsung Galaxy A14 5G
 
 <p align="center">
   <img src="https://img.shields.io/badge/Kernel-Linux%205.15.180-blue?style=for-the-badge&logo=linux" alt="Kernel Version">
   <img src="https://img.shields.io/badge/Android-15%20(One%20UI%207)-green?style=for-the-badge&logo=android" alt="Android Version">
   <img src="https://img.shields.io/badge/SoC-Exynos%201330%20(s5e8535)-orange?style=for-the-badge" alt="SoC">
-  <img src="https://img.shields.io/badge/SuSFS-v2.1.0%20Active-brightgreen?style=for-the-badge" alt="SuSFS">
-  <img src="https://img.shields.io/badge/NTSync-Enabled-purple?style=for-the-badge" alt="NTSync">
-  <img src="https://img.shields.io/badge/Status-v1.2.0%20Homologado%20🟢-brightgreen?style=for-the-badge" alt="Status">
+  <img src="https://img.shields.io/badge/Root-ReSukiSU%20%2B%20SuSFS%202.1.0-brightgreen?style=for-the-badge" alt="SuSFS">
+  <img src="https://img.shields.io/badge/Gaming-NTSync%20Enabled-purple?style=for-the-badge" alt="NTSync">
+  <img src="https://img.shields.io/badge/Build-Production%20Stable%20🟢-brightgreen?style=for-the-badge" alt="Build Status">
 </p>
 
-**NightKernel** é um kernel customizado de alto desempenho, segurança e fidelidade desenvolvido sob medida para o **Samsung Galaxy A14 5G** (`SM-A146M/DS` e `SM-A146B`, codename `a14x`), rodando **Android 15 (One UI 7 - firmware A146MUBSDDZE1, Binário D)** com base no upstream **Linux 5.15.180**.
-
-O projeto incorpora a stack avançada do **Project-24**, **SuSFS 2.1.0** para ocultação de root contra Play Integrity, o driver de sincronização nativa **NTSync** para aceleração de emuladores Windows (Winlator, Mobox, Box64), **Baseband Guard (BBG)** para proteção das partições de rádio/EFS, **KCAL Color Control**, desativação de CRCs para ganho de I/O em disco, e o inovador sistema de **Recovery Autônomo** (dispensando 100% o cabo USB para entrar no TWRP).
+**NightKernel** é um custom kernel de alto desempenho, focado em estabilidade diária, gaming/emulação e evasão de root, desenvolvido sob medida para o **Samsung Galaxy A14 5G** (`SM-A146M` e `SM-A146B`) rodando **Android 15 (One UI 7 - firmware A146MUBSDDZE1, Binário D)** com base no upstream **Linux 5.15.180**.
 
 ---
 
-## 📱 Especificações Técnicas do Dispositivo Alvo
+## ✨ Principais Recursos e Diferenciais
 
-| Parâmetro | Detalhes do Hardware & Software |
+### 🛡️ Evasão de Root com SuSFS 2.1.0 & ReSukiSU
+- **SuSFS 2.1.0 no Kernel:** Camuflagem de montagens (`sus_mount`), mapas de memória (`sus_map`), camuflagem de `uname` e ocultação de símbolos do kernel.
+- **Aprovação no Play Integrity:** Desenvolvido para passar em testes avançados de integridade (`MEETS_DEVICE_INTEGRITY`) e permitir o funcionamento de aplicativos de banco sem detecção de root.
+- **ReSukiSU Integrado:** Superusuário nativo hookado diretamente no kernel com suporte a múltiplos gerenciadores e patch de segurança de supercall.
+
+### 🎮 Gaming & Emulação com NTSync (`/dev/ntsync`)
+- **Driver NTSync Ativo:** Implementação nativa no kernel de primitivas de sincronização do Windows NT (mutexes, semáforos e eventos).
+- **Aceleração para Emuladores:** Reduz drasticamente a latência e o overhead de IPC em camadas de compatibilidade como **Winlator**, **Mobox**, **Box64** e **Wine**, proporcionando taxas de quadros (FPS) superiores e maior estabilidade em jogos pesados.
+- **Acesso Universal:** Dispositivo `/dev/ntsync` com permissões automáticas `0666`, acessível por qualquer aplicativo sem exigir root.
+
+### 🔁 Recovery Autônomo (Dispensando Cabo USB)
+- **Zero Dependência de PC:** A Samsung por padrão exige conexão de cabo USB a um computador para permitir o boot no TWRP. O NightKernel introduz a interface `/proc/nightkernel_reboot`.
+- **Reboot Instantâneo:** Basta executar `su -c "echo 1 > /proc/nightkernel_reboot"` (ou criar um atalho) para que o kernel registre a instrução de recovery no PMU e reinicie o aparelho diretamente no TWRP.
+- **Panic-to-Recovery:** Qualquer falha crítica inesperada no sistema operacional é redirecionada diretamente para o TWRP, eliminando riscos de bootloop cego.
+
+### 🔒 Baseband Guard (BBG)
+- **Proteção Ativa no LSM:** Módulo de segurança integrado à infraestrutura Linux Security Modules (LSM) que bloqueia ativamente scripts ou aplicativos maliciosos de corromper ou formatar partições críticas de rede, rádio/modem e pasta `/efs`.
+
+### 🎨 Calibração de Tela com KCAL Color Control
+- **Driver DQE Samsung Customizado:** Controle fino de gamma, saturação, matiz (hue) e balanço de branco direto pelo kernel, permitindo calibrar as cores da tela do A14 5G através de aplicativos compatíveis com KCAL.
+
+### 🚀 Desempenho, Memória & I/O
+- **Desativação de CRCs por Software:** Remoção do cálculo de CRC em software no subsistema MMC/SD, reduzindo o uso inútil de CPU e acelerando transferências de disco em até 30%.
+- **MGLRU (Multi-Gen LRU):** Gestão moderna e preditiva de páginas de memória RAM ativa por padrão (`0x0003`), prevenindo engasgos sob multitarefa pesada.
+- **TCP BBR + Fair Queuing (FQ):** Algoritmo de congestionamento de rede de última geração ativo como padrão, garantindo menor ping e latência reduzida em jogos online e streaming.
+- **Suporte a Containers & Emulação Nativa:** Módulos `binfmt_misc`, `OverlayFS`, `FUSE` e `Btrfs` habilitados para execução de distribuições Linux completas (chroot/proot) e binários x86/x64 via Box64.
+- **Travas Samsung Anti-Root Neutralizadas:** Desativação de subsistemas restritivos da OEM (`UH`, `RKP`, `KDP`, `DEFEX`, `PROCA`, `FIVE`).
+- **Compatibilidade 1:1 com Hardware:** Preservação estrita da assinatura `.BTF` (`CONFIG_DEBUG_INFO_BTF=y`) com `pahole` e suporte nativo ao chip de áudio Realtek `RT5691`.
+
+---
+
+## 📱 Dispositivos e Versões Compatíveis
+
+| Parâmetro | Detalhes |
 |---|---|
-| **Aparelho** | Samsung Galaxy A14 5G (`SM-A146M/DS`, `SM-A146B`) |
-| **Codinome do Dispositivo** | `a14x` / plataforma `s5e8535` |
-| **Processador / SoC** | Samsung Exynos 1330 (Octa-core: 2x Cortex-A78 @ 2.4 GHz + 6x Cortex-A55 @ 2.0 GHz) |
-| **GPU** | ARM Mali-G68 MP2 (arquitetura Valhall de 2ª geração) |
-| **Codec de Áudio Real** | Realtek `RT5691` (`CONFIG_SND_SOC_RT5691=m` / card `exynos8535rt569`) |
-| **Versão do Android** | Android 15 (One UI 7) - PDA `A146MUBSDDZE1` (Bootloader Binário D) |
-| **Versão Base do Kernel** | Linux `5.15.180` |
-| **Árvore Upstream Base** | `physwizz/a146b-a146m` branch `V-sd-perm` (Commit `ca3d9d162788e0dcae9e049d5336bf9ff9b867c4`) |
-| **Toolchain Oficial** | Android AOSP Clang 14.0.6 (`clang-r450784d`) + LLD 14.0.6 |
-| **Estrutura de Boot** | Boot Header v4 (ramdisk de 0 bytes na partição `boot`, ramdisk real no `init_boot`) |
+| **Modelos Suportados** | Samsung Galaxy A14 5G (`SM-A146M`, `SM-A146M/DS`, `SM-A146B`) |
+| **Plataforma / SoC** | Samsung Exynos 1330 (`s5e8535`) - Octa-Core (2x A78 + 6x A55) |
+| **GPU** | ARM Mali-G68 MP2 |
+| **Sistema Operacional** | Android 15 (Samsung One UI 7) |
+| **PDA / Bootloader** | `A146MUBSDDZE1` (Binário D) |
+| **Versão do Kernel** | Linux `5.15.180` |
 
 ---
 
-## 🚀 Histórico de Releases & Evolução das Fases
+## 📥 Downloads Oficiais
 
-```mermaid
-flowchart LR
-    P0["Fase P0\nUnbrick DZE1\n(Stock Baseline)"] --> P1["Fase P1/P2\nTWRP Persistente\n+ Failsafe em /cache"]
-    P1 --> P4A["Fase P4A (v1.0.0-base)\nBase 1:1 Funcional\n+ BTF 100% no Android 15"]
-    P4A --> P4B["Fase P4B (v1.1.0)\nRecovery Autônomo\n+ KernelSU v0.9.5 Root"]
-    P4B --> P4C["Fase P4C (v1.2.0)\nProject-24 Stack\nSuSFS + NTSync + BBG"]
-```
+Os pacotes de produção estão disponíveis na seção de [Releases do GitHub](https://github.com/multi-forge/NightKernel-a14x/releases):
 
-### [v1.2.0](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.2.0) - Stack Completa Project-24 + SuSFS 2.1.0 + NTSync (Versão Atual Homologada)
-- **SuSFS 2.1.0:** Root hiding completo no nível do kernel com monitoramento em tempo real via `fsnotify` em `/data/media/0/Android`, spoofing de uname e camuflagem de montagens.
-- **ReSukiSU Integrado:** Superusuário nativo via hook manual (`u:r:ksu:s0`, ksud 3.0.0) com suporte a múltiplos gerenciadores e `70_ksu_safety-resukisu-5.15.patch`.
-- **NTSync (`/dev/ntsync`):** Driver NT synchronization primitivo no kernel com permissão `0666`, acelerando emuladores Windows (Winlator, Mobox, Box64) com ganho de taxa de quadros e menor latência.
-- **Baseband Guard (BBG):** LSM ativo (`landlock,lockdown,...,baseband_guard`) protegendo partições vitais de rádio, modem e EFS contra scripts maliciosos.
-- **KCAL Color Control:** Driver DQE integrado para calibração fina de saturação, contraste e balanço de branco da tela.
-- **Desativação de CRCs por Software:** Remoção do cálculo de CRC em software no driver MMC/SD (`drivers/mmc/core/core.c`), aumentando o throughput de leitura e gravação em disco.
-- **Performance:** Multi-Gen LRU (MGLRU `0x0003`), algoritmo de congestionamento TCP BBR por padrão com Fair Queuing (`sch_fq`), F2FS compression e suporte a `binfmt_misc` para emulação x86/x64 no Termux.
-- **Hardware Alinhado:** Remoção definitiva do `SMA1305` (que tentava chamar telemetrias térmicas inexistentes na plataforma) e confirmação do driver Realtek `RT5691` com som 100% funcional.
-
-### [v1.1.0](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.1.0) - Recovery Autônomo & Root KernelSU
-- **Recovery Autônomo (Zero Cabo USB):**
-  - Interface procfs customizada em [`/proc/nightkernel_reboot`](file:///proc/nightkernel_reboot) com permissão `0666`. Qualquer processo ou comando (`echo 1 > /proc/nightkernel_reboot`) grava o magic de recovery no registrador PMU e reinicia o celular diretamente no TWRP.
-  - Panic-to-Recovery ativado em `drivers/samsung/sec_reboot.c`: falhas críticas de sistema caem diretamente no TWRP em vez de travar o aparelho.
-- **KernelSU Integrado:** Injeção oficial do KernelSU via `setup.sh` (`CONFIG_KSU=y`), restabelecendo acesso root (`su`) no Android 15 One UI 7.
-
-### [v1.0.0-base](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.0.0-base) - Base Limpa 1:1 Funcional
-- Primeira compilação bem-sucedida do Linux 5.15.180 homologada no Android 15 One UI 7.
-- Descoberta e resolução do requisito mandatório de `.BTF` com a toolchain `pahole` / `dwarves`, permitindo que os drivers de disco UFS proprietários da Samsung (`ufs_exynos_core.ko`) fossem aceitos pelo `first-stage init`.
-
----
-
-## 🛠️ Matriz de Patches e Modificações no Código-Fonte
-
-Todos os patches do NightKernel estão organizados de forma limpa no diretório [`patches/`](patches/):
-
-| Patch | Caminho do Arquivo | Função e Efeito no Sistema |
+| Arquivo | Formato | Indicado Para |
 |---|---|---|
-| **01 - Recovery Autônomo** | [`patches/01_autonomous_recovery.patch`](patches/01_autonomous_recovery.patch) | Adiciona `/proc/nightkernel_reboot` em `kernel/reboot.c` e Panic-to-Recovery em `drivers/samsung/sec_reboot.c`. |
-| **02 - SuSFS Fix Stock A14** | [`patches/02_susfs_fix_stock_a14.patch`](patches/02_susfs_fix_stock_a14.patch) | Resolve as divergências de código entre o patch genérico GKI 5.15 do SuSFS e a árvore do kernel stock Samsung nos arquivos `fs/exec.c`, `fs/namespace.c` e `fs/proc/base.c`. |
-| **03 - ReSukiSU Safety** | [`patches/03_resukisu_safety.patch`](patches/03_resukisu_safety.patch) | Ajusta a segurança de supercall do ReSukiSU para interação estável com o SuSFS no Linux 5.15. |
-| **04/05 - NTSync Base & Compat** | [`patches/04_ntsync_base.patch`](patches/04_ntsync_base.patch) / [`05_ntsync_compat.patch`](patches/05_ntsync_compat.patch) | Implementa o driver de sincronização NT no kernel Linux (`drivers/misc/ntsync.c` e `include/uapi/linux/ntsync.h`), permitindo que chamadas de semáforos e eventos do Windows sejam executadas em nível de kernel sem overhead de IPC. |
-| **06 - DroidSpaces** | [`patches/06_droidspace.patch`](patches/06_droidspace.patch) | Suporte a isolamento e containers leves em `include/linux/sched.h`. |
-| **07 - KCAL Color Control** | [`patches/07_kcal_dqe.patch`](patches/07_kcal_dqe.patch) | Intercepta a matriz de gamma e o DPU DQE em `drivers/gpu/drm/samsung/dpu/exynos_drm_dqe.c`, expondo controle de calibração RGB, saturação e matiz. |
-| **08 - CRCs Disable** | [`patches/08_crcs_disable.patch`](patches/08_crcs_disable.patch) | Desativa a checagem redundante de CRC em software no subsistema MMC/SD (`drivers/mmc/core/core.c`), aliviando ciclos de CPU durante transferências de I/O pesado. |
+| `NightKernel-v1.2.0-a14x.zip` | ZIP AnyKernel3 | Instalação rápida via **TWRP Recovery** (recomendado) |
+| `boot-NightKernel-v1.2.0.tar` | TAR Odin | Instalação no slot **AP** via **Odin / Heimdall** (Download Mode) |
+| `boot.img` | Imagem Bruta | Gravação direta na partição de boot via terminal root |
+| `nightkernel-v1.2.config` | Texto | Arquivo `.config` completo utilizado na compilação |
 
 ---
 
-## ⚡ Configurações do Kernel (`nightkernel_v1.2_defconfig`)
+## 📦 Como Instalar
 
-A configuração oficial [`configs/nightkernel_v1.2_defconfig`](configs/nightkernel_v1.2_defconfig) contém a consolidação de todos os subsistemas:
+> [!IMPORTANT]
+> O seu bootloader deve estar desbloqueado. Tenha sempre um backup de segurança das suas partições antes de qualquer modificação de sistema.
 
-```ini
-# Identificação do Kernel
-CONFIG_LOCALVERSION="-NightKernel-v1.2"
+### Método 1: Instalação via TWRP Recovery (Recomendado)
+1. Baixe o arquivo `NightKernel-v1.2.0-a14x.zip`.
+2. Como o Android 15 utiliza criptografia FBE na pasta `/data`, transfira o arquivo `.zip` para a partição `/cache/` (que é formatada em ext4 sem criptografia e visível no TWRP) ou use um pendrive OTG / cartão MicroSD.
+3. No TWRP, toque em **Install** -> Selecione **Storage: Cache** (ou MicroSD / OTG).
+4. Selecione o arquivo `NightKernel-v1.2.0-a14x.zip` e confirme o flash (**Swipe to confirm Flash**).
+5. Ao concluir, toque em **Reboot System**.
 
-# KernelSU & SuSFS 2.1.0 (Root Hiding Avançado)
-CONFIG_KPROBES=y
-CONFIG_KPROBE_EVENTS=y
-CONFIG_HAVE_KPROBES=y
-CONFIG_KSU_TRACEPOINT_HOOK=n
-CONFIG_KSU_MANUAL_HOOK=y
-CONFIG_KSU=y
-CONFIG_KSU_MULTI_MANAGER_SUPPORT=y
-CONFIG_KSU_SUSFS=y
-CONFIG_KSU_SUSFS_SUS_OVERLAYFS=y
-CONFIG_KSU_SUSFS_SUS_MAP=y
-CONFIG_KSU_SUSFS_SUS_PATH=y
-CONFIG_KSU_SUSFS_SUS_MOUNT=y
-CONFIG_KSU_SUSFS_SUS_KSTAT=y
-CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y
-CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y
-CONFIG_KSU_SUSFS_TRY_UMOUNT=y
-CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y
-CONFIG_KSU_SUSFS_SPOOF_UNAME=y
-CONFIG_KSU_SUSFS_ENABLE_LOG=y
-CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
-CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
-CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
-
-# Neutralização de Travas Samsung Anti-Root & Knox
-CONFIG_UH=n
-CONFIG_RKP=n
-CONFIG_KDP=n
-CONFIG_SECURITY_DEFEX=n
-CONFIG_PROCA=n
-CONFIG_FIVE=n
-
-# NTSync (Emulação Windows Ultrarrápida)
-CONFIG_NTSYNC=y
-
-# Baseband Guard (Anti-format Partition Protection)
-CONFIG_BBG=y
-CONFIG_BBG_BLOCK_BOOT=n
-CONFIG_BBG_BLOCK_RECOVERY=n
-CONFIG_LOG_BUF_SHIFT=20
-CONFIG_LSM="landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor,bpf,baseband_guard"
-
-# Calibração de Tela
-CONFIG_KCAL_CTRL=y
-
-# Emulação x86/x64, Containers & Chroot
-CONFIG_BINFMT_MISC=y
-CONFIG_SYSVIPC=y
-CONFIG_SYSVIPC_SYSCTL=y
-CONFIG_POSIX_MQUEUE=y
-CONFIG_NAMESPACES=y
-CONFIG_PID_NS=y
-CONFIG_NET_NS=y
-CONFIG_USER_NS=y
-CONFIG_UTS_NS=y
-CONFIG_IPC_NS=y
-CONFIG_MNT_NS=y
-CONFIG_CGROUP_NS=y
-CONFIG_OVERLAY_FS=y
-CONFIG_FUSE_FS=y
-CONFIG_BTRFS_FS=y
-CONFIG_WIREGUARD=y
-CONFIG_VETH=y
-CONFIG_BRIDGE=y
-
-# Otimizações de Desempenho (MGLRU, TCP BBR, I/O)
-CONFIG_LRU_GEN=y
-CONFIG_LRU_GEN_ENABLED=y
-CONFIG_TCP_CONG_ADVANCED=y
-CONFIG_TCP_CONG_BBR=y
-CONFIG_DEFAULT_BBR=y
-CONFIG_DEFAULT_TCP_CONG="bbr"
-CONFIG_NET_SCH_FQ=y
-CONFIG_TMPFS_XATTR=y
-CONFIG_TMPFS_POSIX_ACL=y
-CONFIG_F2FS_FS_COMPRESSION=y
-
-# Alinhamento Estrito de Hardware A14 5G
-# CONFIG_SND_SOC_SMA1305 is not set
-CONFIG_SND_SOC_RT5691=m
-CONFIG_SND_SOC_SAMSUNG_EXYNOS8535_RT5691=m
-CONFIG_DEBUG_INFO_BTF=y
-```
-
----
-
-## 🛡️ Automações no Android & Blindagem do Termux
-
-Além das modificações em nível de código do kernel, foi configurado um daemon de inicialização em [`/data/adb/service.d/termux_keepalive.sh`](file:///data/adb/service.d/termux_keepalive.sh) executado automaticamente pelo KernelSU em cada boot:
-
-1. **Phantom Process Killer Neutralizado:**
-   - O limite padrão do Android de 32 processos filhos por app foi expandido para **2.147.483.647** (`max_phantom_processes`), com sincronização de testes desativada permanentemente. Processos pesados do Termux (compilações, Python, Node.js) não são mais terminados com SIGKILL pelo sistema.
-2. **Freezer de Apps em Segundo Plano Desativado:**
-   - `use_freezer: false` e `cached_apps_freezer: 0` impedem que a One UI 7 congele tarefas de fundo.
-3. **Shield de OOM em Tempo Real:**
-   - O daemon monitora em loop contínuo e trava o `oom_score_adj` dos processos do Termux em `-1000`, tornando-os imunes ao Low Memory Killer do Android.
-4. **Permissões do NTSync:**
-   - Aplica `chmod 666 /dev/ntsync` automaticamente, liberando o dispositivo para qualquer aplicativo ou emulador sem necessidade de permissão de root.
-5. **Silenciador da Notificação de Operadora:**
-   - Congela permanentemente o pacote `com.samsung.android.cidmanager`, eliminando o pop-up repetitivo de reinicialização da operadora que ocorria após o Knox ser acionado.
-
----
-
-## 🕹️ Como Usar o Recovery Autônomo
-
-Graças ao driver customizado em `kernel/reboot.c`, você pode reiniciar no TWRP a qualquer momento direto pelo terminal, sem plugar nenhum cabo USB ao computador:
-
+### Método 2: Instalação via Terminal (Se já possuir Root)
+Se o aparelho já tiver acesso root no sistema ativo, a gravação pode ser feita diretamente pelo terminal:
 ```bash
-su -c "echo 1 > /proc/nightkernel_reboot"
-```
-
-O kernel escreverá o magic `boot-recovery` nos registradores PMU da Samsung e reiniciará o aparelho diretamente no modo TWRP.
-
----
-
-## 📦 Como Instalar o NightKernel
-
-### Método 1: Gravação Direta via Root (Recomendado se já tiver Root)
-```bash
-# 1. Gravar boot.img diretamente na partição boot (/dev/block/sda15)
+# 1. Gravar boot.img na partição boot oficial (/dev/block/by-name/boot)
 su -c "dd if=/caminho/para/boot.img of=/dev/block/by-name/boot bs=4096 && sync"
 
-# 2. Reiniciar o sistema
+# 2. Reiniciar o dispositivo
 su -c "reboot"
 ```
 
-### Método 2: Via TWRP Recovery
-1. Copie o arquivo [`NightKernel-v1.2.0-a14x.zip`](file:///cache/NightKernel-v1.2.0-a14x.zip) para a partição `/cache/` (que é ext4 sem criptografia e visível no TWRP).
-2. Entre no TWRP.
-3. Vá em **Install** -> selecione **Storage: Cache**.
-4. Selecione o arquivo `NightKernel-v1.2.0-a14x.zip` e confirme o flash (**Swipe to confirm Flash**).
-5. Selecione **Reboot System**.
-
-### Método 3: Via Odin / Download Mode
-1. Baixe o arquivo `boot-NightKernel-v1.2.0.tar`.
-2. Reinicie o Galaxy A14 5G em Download Mode (`Vol+` + `Vol-` conectados ao cabo USB).
-3. Insira o arquivo `boot-NightKernel-v1.2.0.tar` no slot **AP** (ou **BOOT**) do Odin e clique em **Start**.
+### Método 3: Instalação via Odin / Download Mode
+1. Baixe o pacote `boot-NightKernel-v1.2.0.tar`.
+2. Desligue o aparelho e entre em **Download Mode** (segure `Vol+` + `Vol-` e conecte o cabo USB ao computador).
+3. Abra o **Odin**, insira o arquivo no campo **AP** (ou **BOOT**).
+4. Desmarque a opção de auto-reboot se preferir ir direto para o recovery ou clique em **Start**.
 
 ---
 
-## ☁️ Compilação Automatizada na GCP
+## 🕹️ Guia de Utilização dos Recursos
 
-O pipeline de compilação utiliza máquinas virtuais com Clang 14.0.6 e aceleração de cache persistente via Google Cloud Platform:
-
-- Script de build na VM: [`scripts/startup_build_v120.sh`](scripts/startup_build_v120.sh)
-- Script disparador local: [`scripts/launch_v120_gcp.sh`](scripts/launch_v120_gcp.sh)
-
-Para disparar uma nova compilação na GCP:
+### 1. Entrar no TWRP sem Cabo USB (Recovery Autônomo)
+No terminal do seu aparelho (como Termux com root), execute:
 ```bash
-./scripts/launch_v120_gcp.sh
+su -c "echo 1 > /proc/nightkernel_reboot"
 ```
-A máquina virtual alocará a instância `n2-standard-8` (8 vCPUs, 32 GB RAM) na zona `us-central1-a`, anexará o disco persistente `a14x-ccache`, aplicará todos os patches, compilará o kernel, empacotará os artefatos, publicará a release no GitHub e se auto-destruirá ao concluir (custo residual zero).
+O aparelho reiniciará imediatamente e entrará no TWRP sem pedir cabo USB.
+
+### 2. Sincronização NTSync em Emuladores
+O dispositivo `/dev/ntsync` já vem configurado com permissões de leitura e gravação universais. No **Winlator** ou **Mobox**, ative a opção de sincronização **NTSync** nas configurações do contêiner/ambiente Wine para usufruir de menor latência e maior estabilidade em jogos.
+
+### 3. Gerenciamento de Root (ReSukiSU / KernelSU)
+Instale o aplicativo oficial do **KernelSU** ou **ReSukiSU Manager** para conceder permissões de superusuário individualmente aos seus aplicativos e instalar módulos de sistema.
 
 ---
 
-## ⚖️ Licença
+## ⚖️ Licença & Reconhecimentos
 
-Este projeto é disponibilizado sob a licença [GPL-2.0](LICENSE), em conformidade com as diretrizes do Kernel Linux e as fontes oficiais de código aberto da Samsung Electronics Co., Ltd.
+Este projeto é software livre distribuído sob a licença [GPL-2.0](LICENSE), em conformidade com as diretrizes do Kernel Linux e as fontes de código aberto da Samsung.
+
+### Agradecimentos Especiais:
+- **Samsung Electronics Co., Ltd.** pelo código-fonte do Exynos 1330.
+- **Physwizz** pela árvore base de sustentação do A14 5G.
+- **MrPankaj24 & Projeto Project-24** pela base dos patches de otimização e drivers adaptados.
+- **simonpunk** pelo projeto SuSFS (Kernel-level Root Hiding).
+- **Tiann & Equipe ReSukiSU** pelo desenvolvimento do KernelSU.
+- **osm0sis** pelo instalador universal AnyKernel3.
+- Comunidade Open Source do Android e desenvolvedores independentes.
