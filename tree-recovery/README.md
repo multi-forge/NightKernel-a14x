@@ -1,95 +1,110 @@
 # Samsung Galaxy A14 5G (`SM-A146M/DS` / `SM-A146B` — `a14x`)
 
 <p align="center">
+  <a href="README.md"><img src="https://img.shields.io/badge/Language-English-blue?style=for-the-badge&logo=google-translate" alt="English"></a>
+  <a href="README_PT.md"><img src="https://img.shields.io/badge/L%C3%ADngua-Portugu%C3%AAs%20(Brasil)-green?style=for-the-badge&logo=google-translate" alt="Português"></a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Device-Samsung%20Galaxy%20A14%205G-blue?style=for-the-badge&logo=samsung" alt="Device">
   <img src="https://img.shields.io/badge/SoC-Exynos%201330%20(s5e8535)-orange?style=for-the-badge" alt="SoC">
   <img src="https://img.shields.io/badge/Android-15%20(One%20UI%207)-green?style=for-the-badge&logo=android" alt="Android">
-  <img src="https://img.shields.io/badge/Recovery-TWRP%20v3.7%20Persistente%20🟢-brightgreen?style=for-the-badge" alt="Recovery">
+  <img src="https://img.shields.io/badge/Recovery-TWRP%20v3.7%20Persistent%20🟢-brightgreen?style=for-the-badge" alt="Recovery">
 </p>
 
-Repositório oficial da árvore de dispositivo (Device Tree), módulos de persistência de recovery, configurações de kernel e procedimentos de desbrickagem para o **Samsung Galaxy A14 5G** (`SM-A146M` e `SM-A146B`, codinome `a14x`), plataforma **Exynos 1330 (`s5e8535`)**, rodando **Android 15 (One UI 7 - PDA `A146MUBSDDZE1`, Binário D)**.
+<p align="center">
+  <a href="https://github.com/multi-forge/android_device_samsung_a14x/releases/tag/unbrick-dze1"><img src="https://img.shields.io/badge/Download-TWRP%20Recovery%20(DZE1)-red?style=for-the-badge&logo=twrp" alt="Download TWRP"></a>
+  <a href="https://github.com/multi-forge/NightKernel-a14x"><img src="https://img.shields.io/badge/Kernel-NightKernel%20a14x-purple?style=for-the-badge" alt="NightKernel"></a>
+</p>
+
+Official repository for the Device Tree, recovery persistence modules, kernel configurations, and unbricking procedures for the **Samsung Galaxy A14 5G** (`SM-A146M` and `SM-A146B`, codename `a14x`), powered by the **Exynos 1330 (`s5e8535`)** platform, running **Android 15 (One UI 7 - PDA `A146MUBSDDZE1`, Binary D)**.
 
 ---
 
-## 📱 Especificações Técnicas do Dispositivo
+## 📱 Device Technical Specifications
 
-| Parâmetro | Valor / Especificação |
+| Parameter | Value / Specification |
 |---|---|
-| **Modelo** | Samsung Galaxy A14 5G (`SM-A146M/DS` / `SM-A146B`) |
-| **Codinome** | `a14x` / `s5e8535` |
+| **Model** | Samsung Galaxy A14 5G (`SM-A146M/DS` / `SM-A146B`) |
+| **Codename** | `a14x` / `s5e8535` |
 | **SoC / Chipset** | Samsung Exynos 1330 (2× Cortex-A78 @ 2.4 GHz + 6× Cortex-A55 @ 2.0 GHz) |
 | **GPU** | ARM Mali-G68 MP2 |
-| **Codec de Áudio** | `SMA1305` |
+| **Audio Codec** | `SMA1305` |
 | **PDA / AP** | `A146MUBSDDZE1` |
 | **CSC** | `A146MOWODDZE1` (OWO / ZTO / LATAM) |
-| **Versão Android** | Android 15 / One UI 7 (Binário D - Bootloader v4/v2) |
+| **Android Version** | Android 15 / One UI 7 (Binary D - Bootloader v4/v2) |
 | **Kernel Baseline** | Linux `5.15.180` (Branch `V-sd-perm`, commit `ca3d9d162`) |
-| **Partição Recovery** | `100.663.296` bytes (96 MB) — Boot Header v2 |
-| **Partição Boot** | `67.108.864` bytes (64 MB) — Boot Header v4 (ramdisk 0) |
-| **Partição Init Boot** | `16.777.216` bytes (16 MB) — Contém o ramdisk do sistema |
-| **Custom Kernel Oficial** | [multi-forge/NightKernel-a14x](https://github.com/multi-forge/NightKernel-a14x) |
+| **Recovery Partition** | `100,663,296` bytes (96 MB) — Boot Header v2 |
+| **Boot Partition** | `67,108,864` bytes (64 MB) — Boot Header v4 (ramdisk 0) |
+| **Init Boot Partition** | `16,777,216` bytes (16 MB) — Contains system ramdisk |
+| **Official Custom Kernel** | [multi-forge/NightKernel-a14x](https://github.com/multi-forge/NightKernel-a14x) |
 
 ---
 
-## 🛠️ Arquitetura do TWRP Recovery no Android 15
+## 🛠️ TWRP Recovery Architecture on Android 15
 
-### 1. Formato e Particionamento
-- O recovery reside na partição `/dev/block/by-name/recovery` (96 MB) e utiliza o formato **Boot Header v2** (kernel integrado + ramdisk TWRP + DTB da Samsung compilado para `s5e8535`).
-- Suporta modo **Fastbootd** integrado para flashing de partições dinâmicas (`system`, `vendor`, `product`, `system_ext`).
+### 1. Partitioning and Image Format
+- Recovery is hosted on the `/dev/block/by-name/recovery` partition (96 MB) using the **Boot Header v2** format (embedded kernel + TWRP ramdisk + compiled Samsung `s5e8535` DTB).
+- Integrated **Fastbootd** mode support for flashing dynamic partitions (`system`, `vendor`, `product`, `system_ext`).
 
-### 2. Mecanismo de Persistência (Anti-Recovery Restore)
-Nos firmwares stock da Samsung, o sistema operacional tenta restaurar automaticamente o recovery de fábrica a cada boot através do arquivo `/system/bin/install-recovery.sh` e do patch delta `/system/recovery-from-boot.p`.
-- **Como neutralizamos:** 
-  - O módulo [modules/keep-twrp](modules/keep-twrp) é injetado no ambiente de inicialização (Magisk/KernelSU).
-  - Ele intercepta a execução de scripts de restauração e bloqueia qualquer gravação não autorizada na partição de recovery, garantindo que o TWRP permaneça permanentemente instalado após reboots.
+### 2. Persistence Mechanism (Anti-Recovery Restore)
+Stock Samsung firmwares attempt to automatically restore the stock recovery on every boot via `/system/bin/install-recovery.sh` and `/system/recovery-from-boot.p`.
+- **How we prevent overwrite:** 
+  - The [modules/keep-twrp](modules/keep-twrp) module is injected into the early boot environment (Magisk/KernelSU).
+  - It intercepts restore scripts and blocks unauthorized write calls to the recovery partition, ensuring TWRP remains permanently installed across reboots.
 
-### 3. Failsafe Local em `/cache` (Contorno da Criptografia FBE)
-No Android 15, a partição `/data` utiliza criptografia FBE (File-Based Encryption) baseada em chaves do hardware TrustZone/Keystore. Por este motivo, o TWRP **não descriptografa** o armazenamento interno `/sdcard`.
-- **Solução Arquitetural:** 
-  - A partição `/cache` (`/dev/block/by-name/cache`, ext4) **não é criptografada** e é montada nativamente pelo TWRP com leitura e escrita totais.
-  - Mantemos uma suíte completa de recuperação permanente em `/cache`:
-    - `/cache/Restore-Stock-Boot.zip`: AnyKernel3 para restauração stock instantânea (1 clique).
-    - `/cache/Kernel-Base-a14x-Vsd.zip`: AnyKernel3 do novo kernel base.
-    - `/cache/boot-backup.img`: Dump bruto de 64 MB da partição de boot funcional.
-    - `/cache/restore_boot.sh`: Script executável direto pelo Terminal do TWRP.
+### 3. Local `/cache` Failsafe Suite (Bypassing FBE Encryption)
+On Android 15, the `/data` partition uses File-Based Encryption (FBE) backed by TrustZone hardware keystore keys. As a result, TWRP **does not decrypt** internal storage (`/sdcard`).
+- **Architectural Solution:** 
+  - The `/cache` partition (`/dev/block/by-name/cache`, ext4) **is unencrypted** and mounted natively by TWRP with full read/write permissions.
+  - A permanent unbrick suite is maintained inside `/cache`:
+    - `/cache/Restore-Stock-Boot.zip`: AnyKernel3 package for instant 1-click stock restoration.
+    - `/cache/Kernel-Base-a14x-Vsd.zip`: AnyKernel3 base kernel package.
+    - `/cache/boot-backup.img`: Raw 64 MB dump of the functional boot partition.
+    - `/cache/restore_boot.sh`: Direct executable shell script for TWRP Terminal.
 
-### 4. Trava de Handshake USB do Bootloader (`sboot`)
-No bootloader moderno da Samsung para a plataforma Exynos 1330:
-- Para acionar o recovery com os botões físicos (`Vol+` + `Power`) durante a inicialização a frio, o `sboot` **exige que um cabo USB esteja conectado a um PC ou carregador** (detecção de sinal elétrico `VBUS` / handshake USB).
-- Se os botões forem pressionados sem o cabo plugado, o bootloader ignora a solicitação e prossegue com a inicialização normal do Android.
-- *Nota:* A eliminação desta dependência via patch no kernel/PMIC está sendo desenvolvida na **Fase P4B** do projeto [NightKernel](https://github.com/multi-forge/NightKernel-a14x).
+### 4. Bootloader USB Handshake (`sboot`) & Autonomous Solution
+On Samsung's stock bootloader for the Exynos 1330:
+- Cold-booting into recovery using hardware keys (`Vol+` + `Power`) **requires a connected USB cable** plugged into a PC or charger (`VBUS` power detection / USB handshake).
+- Pressing keys without an active USB cable causes the bootloader to ignore recovery requests and continue booting normal Android.
+- ⚡ **Integrated Solution with NightKernel:**
+  - With [NightKernel v1.2+](https://github.com/multi-forge/NightKernel-a14x) installed, this limitation is completely bypassed. You can trigger recovery programmatically at any time without a USB cable:
+    ```bash
+    echo 1 > /proc/nightkernel_reboot
+    ```
+    or simply hold `Power + Vol+` while rebooting the system.
 
 ---
 
-## 🚀 Como Instalar o TWRP Recovery
+## 🚀 How to Install TWRP Recovery
 
-### Método 1: Via Odin / Heimdall (Download Mode)
-1. Coloque o aparelho em **Download Mode** (com o aparelho desligado, segure `Vol+` + `Vol-` e conecte o cabo USB ao PC).
-2. Abra o Odin e insira o pacote `twrp-a14x.tar` no campo **AP** (ou use o Heimdall para gravar a partição `RECOVERY`).
-3. No Odin, desmarque a opção **Auto Reboot**.
-4. Inicie o flash. Quando concluir, force o reboot segurando `Vol-` + `Power` e, assim que a tela apagar, mude imediatamente para `Vol+` + `Power` (mantendo o cabo USB conectado) para entrar diretamente no TWRP.
+### Method 1: Via Odin / Heimdall (Download Mode)
+1. Boot the phone into **Download Mode** (with phone powered off, hold `Vol+` + `Vol-` and connect the USB cable to a PC).
+2. Open Odin and place [`twrp-12-vsd-dze1.tar`](https://github.com/multi-forge/android_device_samsung_a14x/releases/tag/unbrick-dze1) into the **AP** slot (or use Heimdall to flash the `RECOVERY` partition).
+3. In Odin, **uncheck** the **Auto Reboot** option.
+4. Click Start. Once completed, force a reboot by holding `Vol-` + `Power`. As soon as the screen turns black, immediately switch to holding `Vol+` + `Power` (keeping the USB cable connected) to boot directly into TWRP.
 
-### Método 2: Diretamente pelo Terminal (Root)
+### Method 2: Directly via Root Terminal
 ```bash
 su
-dd if=/caminho/para/recovery.img of=/dev/block/by-name/recovery bs=4096
+dd if=/path/to/recovery.img of=/dev/block/by-name/recovery bs=4096
 sync
 ```
 
 ---
 
-## 🆘 Procedimento de Desbrickagem (Unbrick / Odin)
+## 🆘 Unbricking Procedure (Odin / Brokkr)
 
-Caso ocorra corrupção de partições ou falha crítica durante experimentos:
-1. Coloque o aparelho em Download Mode (`Vol -` + `Vol +` com cabo USB).
-2. Baixe os artefatos oficiais da [Release unbrick-dze1](https://github.com/multi-forge/android_device_samsung_a14x/releases/tag/unbrick-dze1):
-   - `unbrick-dze1-recovery.tar`: Restaura a partição `/dev/block/by-name/recovery`.
-   - `unbrick-dze1-boot.tar`: Restaura as partições `/dev/block/by-name/boot` e `/dev/block/by-name/init_boot`.
-3. Flasheie via Odin (PC) ou Brokkr (OTG de outro celular Android).
+If partition corruption or a critical boot failure occurs during experiments:
+1. Put the device into Download Mode (`Vol -` + `Vol +` with USB cable).
+2. Download official artifacts from [Release unbrick-dze1](https://github.com/multi-forge/android_device_samsung_a14x/releases/tag/unbrick-dze1):
+   - `unbrick-dze1-recovery.tar`: Restores `/dev/block/by-name/recovery`.
+   - `unbrick-dze1-boot.tar`: Restores `/dev/block/by-name/boot` and `/dev/block/by-name/init_boot`.
+3. Flash via Odin (PC) or Brokkr (OTG from another Android device).
 
 ---
 
-## 🔐 Checksums de Verificação (Stock DZE1 Baseline)
+## 🔐 Verification Checksums (Stock DZE1 Baseline)
 
 ```text
 05fdc90b152966526553dca7bdbf21a0e35464d4905221adf49ee9677b732e32  recovery-stock.img
@@ -104,6 +119,6 @@ cecc9b258175e228fc80c2237b8ba9baa66b93be4540cc5c8728d60f8718163f  config.gz
 
 ---
 
-## 🔗 Projetos Relacionados
-- **Kernel Customizado:** [multi-forge/NightKernel-a14x](https://github.com/multi-forge/NightKernel-a14x)
-- **Árvore de Origem do Kernel:** `physwizz/a146b-a146m` (branch `V-sd-perm`)
+## 🔗 Related Projects
+- **Official Custom Kernel:** [multi-forge/NightKernel-a14x](https://github.com/multi-forge/NightKernel-a14x)
+- **Kernel Source Baseline:** [physwizz/a146b-a146m](https://github.com/physwizz/a146b-a146m) (branch `V-sd-perm`)
