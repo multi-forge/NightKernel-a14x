@@ -17,6 +17,11 @@
   <img src="https://img.shields.io/badge/Build-Production%20Stable%20🟢-brightgreen?style=for-the-badge" alt="Build Status">
 </p>
 
+<p align="center">
+  <a href="https://github.com/multi-forge/android_device_samsung_a14x/releases/tag/unbrick-dze1"><img src="https://img.shields.io/badge/TWRP%20Recovery-Download%20Tar%20(DZE1)-orange?style=for-the-badge&logo=twrp" alt="TWRP Recovery"></a>
+  <a href="https://github.com/multi-forge/android_device_samsung_a14x"><img src="https://img.shields.io/badge/Device%20Tree-multi--forge%2Fandroid__device__samsung__a14x-blueviolet?style=for-the-badge&logo=github" alt="Device Tree"></a>
+</p>
+
 ---
 
 ## 📖 Overview
@@ -183,6 +188,7 @@ Production-ready packages are available on the [GitHub Releases Page](https://gi
 | **`NightKernel-v1.2.0-a14x.zip`** | AnyKernel3 ZIP | Standard flash via **TWRP Recovery** (preserves ramdisk, dtb, and configs) |
 | **`boot-NightKernel-v1.2.0.tar`** | Odin TAR | Flashing to the **AP** slot via **Odin / Heimdall** in Download Mode |
 | **`boot.img`** | Raw Partition Image | Direct partition flash via root terminal |
+| **`twrp-12-vsd-dze1.tar`** | Odin TAR | Official **TWRP Recovery** for Galaxy A14 5G ➔ [Download](https://github.com/multi-forge/android_device_samsung_a14x/releases/tag/unbrick-dze1) |
 | **`nightkernel_v1.2_defconfig`** | Text Config | Verified `.config` file used for the production build |
 
 ---
@@ -194,6 +200,9 @@ Production-ready packages are available on the [GitHub Releases Page](https://gi
 > - Always maintain a backup of your stock `boot` partition before making any modifications.
 
 ### Method 1: Flashing via TWRP Recovery (Recommended)
+> [!TIP]
+> If you don't have TWRP installed yet, download our official [TWRP Recovery package for Galaxy A14 5G (`twrp-12-vsd-dze1.tar`)](https://github.com/multi-forge/android_device_samsung_a14x/releases/tag/unbrick-dze1) and flash it to the **AP** (or **RECOVERY**) slot via Odin following the instructions in our [Device Tree repository](https://github.com/multi-forge/android_device_samsung_a14x).
+
 Because Android 15 uses FBE encryption on `/data`, TWRP cannot read internal storage directly without formatting. To install without wiping data:
 1. Download `NightKernel-v1.2.0-a14x.zip`.
 2. Copy the `.zip` file to your device's `/cache/` partition (unencrypted ext4, fully accessible by TWRP) or use a MicroSD card / USB OTG drive:
