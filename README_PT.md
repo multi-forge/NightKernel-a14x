@@ -6,7 +6,7 @@
   <img src="assets/banner.jpg" alt="NightKernel Banner" width="100%">
 </p>
 
-Custom kernel Linux para o **Samsung Galaxy A14 5G** (`SM-A146M` / `SM-A146B`, codinome `a14x` / `s5e8535`), rodando **Android 15 (Samsung One UI 7 - PDA `A146MUBSDDZE1`, Binário D)**. Construído a partir da base `physwizz/a146b-a146m` (`V-sd-perm`) com o **Linux 5.15.180** upstream.
+Custom kernel Linux para o **Samsung Galaxy A14 5G** (`SM-A146M` / `SM-A146B`, codinome `a14x` / `s5e8535`), rodando **Android 15 (Samsung One UI 7 - PDA `A146MUBSDDZE1`, Binário D & Binário E)**. Construído a partir da base `physwizz/a146b-a146m` com o **Linux 5.15.197** upstream.
 
 > [!WARNING]
 > **Compatibilidade:** Suporte exclusivo para `SM-A146M` e `SM-A146B` (Samsung Exynos 1330).  
@@ -73,15 +73,15 @@ No bootloader stock da Samsung (`sboot`) do Exynos 1330, existe uma trava que ex
 ## Métodos de Instalação
 
 ### 1. TWRP Recovery (Recomendado)
-1. Baixe o arquivo `NightKernel-v1.2.0-a14x.zip` na aba [Releases](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.2.0).
+1. Baixe o arquivo `NightKernel-v1.2.1-a14x.zip` na aba [Releases](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.2.1).
 2. Entre no TWRP.
 3. *Nota:* Como a partição `/data` é criptografada no Android 15, coloque o zip em um **cartão MicroSD**, **pendrive USB OTG** ou na pasta `/cache/` (partição ext4 não criptografada).
 4. Instale o zip e reinicie o sistema.
 
 ### 2. Odin / Download Mode
-1. Baixe `boot-NightKernel-v1.2.0.tar` nas [Releases](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.2.0).
+1. Baixe `boot-NightKernel-v1.2.1.tar` nas [Releases](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.2.1).
 2. Coloque o aparelho em Download Mode (`Vol+ + Vol-` com cabo USB no PC).
-3. Insira o arquivo `boot-NightKernel-v1.2.0.tar` no slot **AP** do Odin.
+3. Insira o arquivo `boot-NightKernel-v1.2.1.tar` no slot **AP** do Odin.
 4. Flasheie e reinicie.
 
 ### 3. Terminal com Root
@@ -95,7 +95,7 @@ dd if=boot.img of=/dev/block/by-name/boot bs=4096 && sync && reboot
 
 ### Pré-requisitos
 - Ambiente Linux (Ubuntu 22.04 ou 24.04 LTS)
-- AOSP Clang 18 (r522817) ou superior
+- AOSP Clang 14 (r450784d) ou Clang 18 (r522817)
 - Toolchain AArch64 GCC / binutils LLVM
 
 ### Comandos de Build
@@ -104,9 +104,9 @@ export ARCH=arm64
 export SUBARCH=arm64
 export CROSS_COMPILE=aarch64-linux-gnu-
 export CLANG_TRIPLE=aarch64-linux-gnu-
-export PATH=/caminho/para/clang-r522817/bin:$PATH
+export PATH=/caminho/para/clang/bin:$PATH
 
-make CC=clang LLVM=1 nightkernel_v1.2_defconfig
+make CC=clang LLVM=1 nightkernel_v1.2.1_defconfig
 make -j$(nproc) CC=clang LLVM=1 Image
 ```
 A imagem gerada estará em `arch/arm64/boot/Image`.
@@ -116,7 +116,7 @@ A imagem gerada estará em `arch/arm64/boot/Image`.
 ## Estrutura do Repositório
 - [`tree/`](tree/): Árvore completa do código-fonte com todos os patches aplicados.
 - [`tree-recovery/`](tree-recovery/): Device tree funcional do TWRP para o Galaxy A14 5G.
-- [`configs/`](configs/): Defconfig de produção (`nightkernel_v1.2_defconfig`).
+- [`configs/`](configs/): Defconfig de produção (`nightkernel_v1.2.1_defconfig`).
 - [`patches/`](patches/): Arquivos de patch individuais para cada modificação.
 
 ## Links Úteis
