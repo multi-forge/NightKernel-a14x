@@ -1,0 +1,56 @@
+diff --git a/fs/exec.c b/fs/exec.c
+index 39bcdab2b..5d59c52dd 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -67,6 +67,10 @@
+ #include <linux/syscall_user_dispatch.h>
+ #include <linux/task_integrity.h>
+ 
++#ifdef CONFIG_KSU_SUSFS
++#include <linux/susfs_def.h>
++#endif
++
+ #include <linux/uaccess.h>
+ #include <asm/mmu_context.h>
+ #include <asm/tlb.h>
+diff --git a/fs/namespace.c b/fs/namespace.c
+index 1ba46e3fa..9a6ff2826 100644
+--- a/fs/namespace.c
++++ b/fs/namespace.c
+@@ -35,9 +35,20 @@
+ #include <linux/delay.h>
+ #include <linux/fslog.h>
+ 
++#ifdef CONFIG_KSU_SUSFS
++#include <linux/susfs_def.h>
++#endif // #ifdef CONFIG_KSU_SUSFS
++
+ #include "pnode.h"
+ #include "internal.h"
+ 
++#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
++extern bool susfs_is_current_ksu_domain(void);
++extern struct static_key_true susfs_is_sdcard_android_data_not_decrypted;
++
++#define CL_COPY_MNT_NS BIT(25) /* used by copy_mnt_ns() */
++#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
++
+ /* Maximum number of mounts in a mount namespace */
+ unsigned int sysctl_mount_max __read_mostly = 100000;
+ 
+diff --git a/fs/proc/base.c b/fs/proc/base.c
+index b260f374e..3e51822a3 100644
+--- a/fs/proc/base.c
++++ b/fs/proc/base.c
+@@ -102,6 +102,11 @@
+ #include <linux/cn_proc.h>
+ #include <linux/task_integrity.h>
+ #include <linux/proca.h>
++
++#if defined(CONFIG_KSU_SUSFS_SUS_MAP) || defined(CONFIG_KSU_SUSFS_OPEN_REDIRECT)
++#include <linux/susfs_def.h>
++#endif // #if defined(CONFIG_KSU_SUSFS_SUS_MAP) || defined(CONFIG_KSU_SUSFS_OPEN_REDIRECT)
++
+ #include <trace/events/oom.h>
+ #include "internal.h"
+ #include "fd.h"

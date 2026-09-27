@@ -1,0 +1,434 @@
+diff --git a/drivers/gpu/drm/samsung/dpu/Kconfig b/drivers/gpu/drm/samsung/dpu/Kconfig
+index 312eeb6c2784..eadbf490edf9 100755
+--- a/drivers/gpu/drm/samsung/dpu/Kconfig
++++ b/drivers/gpu/drm/samsung/dpu/Kconfig
+@@ -133,6 +133,18 @@ config EXYNOS_UEVENT_RECOVERY_SOLUTION
+ 	help
+ 	  If this menu is enabled, you can detect panel dead.
+ 
++config KCAL_CTRL
++	bool "Support KCAL color control (DQE gamma matrix)"
++	depends on DRM_SAMSUNG_DECON
++	default n
++	help
++	  KCAL post-processing interface for Samsung DPU DQE.
++	  Exposes kcal, kcal_enable, kcal_hue, kcal_sat, kcal_val,
++	  kcal_cont, kcal_min and kcal_max nodes next to the other
++	  decon_dqe sysfs attributes. RGB gains, hue, saturation,
++	  brightness and contrast are composed onto the panel's own
++	  gamma matrix at program time.
++
+ config EXYNOS_FREQ_HOP
+     tristate "Support DPHY PLL Frequency Hopping"
+ 	depends on DRM_SAMSUNG_DECON
+diff --git a/drivers/gpu/drm/samsung/dpu/exynos_drm_dqe.c b/drivers/gpu/drm/samsung/dpu/exynos_drm_dqe.c
+index 27dc70b2db98..70abbfb9596b 100755
+--- a/drivers/gpu/drm/samsung/dpu/exynos_drm_dqe.c
++++ b/drivers/gpu/drm/samsung/dpu/exynos_drm_dqe.c
+@@ -1651,6 +1651,245 @@ static void dqe_set_cgc_dither(struct exynos_dqe *dqe,
+ 	dqe_ctrl_onoff(&dqe->ctx.cgc_dither_on, cgc_dither[0] ? DQE_CTRL_ON : DQE_CTRL_OFF, clrForced);
+ }
+ 
++/*============== KCAL COLOR CONTROL BEGIN ===================*/
++#ifdef CONFIG_KCAL_CTRL
++#define KCAL_FP_SHIFT		14
++#define KCAL_FP_ONE		(1 << KCAL_FP_SHIFT)
++#define KCAL_FP_MAX		(16 * KCAL_FP_ONE)
++
++#define KCAL_GAIN_MAX		4096
++#define KCAL_HUE_DEFAULT	512
++#define KCAL_SAT_MIN		178
++#define KCAL_SAT_MAX		383
++#define KCAL_SAT_DEFAULT	255
++#define KCAL_VAL_MAX		256
++#define KCAL_VAL_DEFAULT	256
++#define KCAL_CONT_MIN		128
++#define KCAL_CONT_MAX		224
++#define KCAL_CONT_DEFAULT	128
++
++/*
++ * Fixed point S8.14 sin/cos tables for hue rotation (-50..50 degrees).
++ * Index is rounded absolute degree offset from neutral hue.
++ */
++static const s16 kcal_cos_tbl[51] = {
++	16384, 16382, 16374, 16362, 16344, 16322, 16294, 16262,
++	16225, 16182, 16135, 16083, 16026, 15964, 15897, 15826,
++	15749, 15668, 15582, 15491, 15396, 15296, 15191, 15082,
++	14968, 14849, 14726, 14598, 14466, 14330, 14189, 14044,
++	13894, 13741, 13583, 13421, 13255, 13085, 12911, 12733,
++	12551, 12365, 12176, 11982, 11786, 11585, 11381, 11174,
++	10963, 10749, 10531
++};
++
++static const s16 kcal_sin_tbl[51] = {
++	0, 286, 572, 857, 1143, 1428, 1713, 1997,
++	2280, 2563, 2845, 3126, 3406, 3686, 3964, 4240,
++	4516, 4790, 5063, 5334, 5604, 5872, 6138, 6402,
++	6664, 6924, 7182, 7438, 7691, 7943, 8192, 8438,
++	8682, 8923, 9161, 9395, 9626, 9853, 10077, 10297,
++	10513, 10725, 10933, 11137, 11336, 11531, 11721, 11906,
++	12086, 12261, 12431
++};
++
++struct kcal_ctrl {
++	int r;
++	int g;
++	int b;
++	int hue;
++	int sat;
++	int val;
++	int cont;
++	int min;
++	int max;
++	bool enable;
++};
++
++static struct kcal_ctrl kcal_ctrl_data = {
++	.r = KCAL_GAIN_MAX,
++	.g = KCAL_GAIN_MAX,
++	.b = KCAL_GAIN_MAX,
++	.hue = KCAL_HUE_DEFAULT,
++	.sat = KCAL_SAT_DEFAULT,
++	.val = KCAL_VAL_DEFAULT,
++	.cont = KCAL_CONT_DEFAULT,
++	.min = 1,
++	.max = 32767,
++	.enable = true,
++};
++
++static inline s32 kcal_fp(int v, int d)
++{
++	return ((s32)v << KCAL_FP_SHIFT) / d;
++}
++
++static inline s32 kcal_fp_mul(s32 a, s32 b)
++{
++	return (s32)clamp_t(s64, (s64)a * b >> KCAL_FP_SHIFT,
++			-KCAL_FP_MAX, KCAL_FP_MAX);
++}
++
++/* out = a x b, entries clamped to +/-16.0 */
++static void kcal_mat_mul(s32 out[3][3], s32 a[3][3], s32 b[3][3])
++{
++	int i, j, k;
++
++	for (i = 0; i < 3; i++) {
++		for (j = 0; j < 3; j++) {
++			s64 acc = 0;
++
++			for (k = 0; k < 3; k++)
++				acc += (s64)a[i][k] * b[k][j];
++			out[i][j] = (s32)clamp_t(s64, acc >> KCAL_FP_SHIFT,
++					-KCAL_FP_MAX, KCAL_FP_MAX);
++		}
++	}
++}
++
++/* Hue rotation around BT.709 luminance axis */
++static void kcal_mat_hue(s32 m[3][3])
++{
++	static const s32 u[3] = {3490, 11715, 1180}; /* 0.213 0.715 0.072 */
++	int off = kcal_ctrl_data.hue - KCAL_HUE_DEFAULT;
++	int deg = abs(off) * 100 / 1024;
++	s32 c, s;
++
++	if (deg > 50)
++		deg = 50;
++	c = kcal_cos_tbl[deg];
++	s = (off >= 0 ? 1 : -1) * kcal_sin_tbl[deg];
++
++	m[0][0] = c + kcal_fp_mul(KCAL_FP_ONE - c, kcal_fp_mul(u[0], u[0]));
++	m[0][1] = kcal_fp_mul(KCAL_FP_ONE - c, kcal_fp_mul(u[0], u[1])) - kcal_fp_mul(s, u[2]);
++	m[0][2] = kcal_fp_mul(KCAL_FP_ONE - c, kcal_fp_mul(u[0], u[2])) + kcal_fp_mul(s, u[1]);
++	m[1][0] = kcal_fp_mul(KCAL_FP_ONE - c, kcal_fp_mul(u[1], u[0])) + kcal_fp_mul(s, u[2]);
++	m[1][1] = c + kcal_fp_mul(KCAL_FP_ONE - c, kcal_fp_mul(u[1], u[1]));
++	m[1][2] = kcal_fp_mul(KCAL_FP_ONE - c, kcal_fp_mul(u[1], u[2])) - kcal_fp_mul(s, u[0]);
++	m[2][0] = kcal_fp_mul(KCAL_FP_ONE - c, kcal_fp_mul(u[2], u[0])) - kcal_fp_mul(s, u[1]);
++	m[2][1] = kcal_fp_mul(KCAL_FP_ONE - c, kcal_fp_mul(u[2], u[1])) + kcal_fp_mul(s, u[0]);
++	m[2][2] = c + kcal_fp_mul(KCAL_FP_ONE - c, kcal_fp_mul(u[2], u[2]));
++}
++
++/* Saturation: lerp between grayscale luma matrix and identity */
++static void kcal_mat_sat(s32 m[3][3])
++{
++	static const s32 luma[3] = {5054, 9984, 1346}; /* .3086 .6094 .0820 */
++	s32 s = kcal_fp(kcal_ctrl_data.sat, KCAL_SAT_DEFAULT);
++	int i, j;
++
++	if (kcal_ctrl_data.sat < 128)
++		s = 0;
++
++	for (i = 0; i < 3; i++)
++		for (j = 0; j < 3; j++)
++			m[i][j] = kcal_fp_mul(luma[j], KCAL_FP_ONE - s) +
++					(i == j ? s : 0);
++}
++
++static bool kcal_is_neutral(void)
++{
++	struct kcal_ctrl *k = &kcal_ctrl_data;
++
++	return !k->enable ||
++		(k->r == KCAL_GAIN_MAX && k->g == KCAL_GAIN_MAX &&
++		 k->b == KCAL_GAIN_MAX && k->hue == KCAL_HUE_DEFAULT &&
++		 k->sat == KCAL_SAT_DEFAULT && k->val == KCAL_VAL_DEFAULT &&
++		 k->cont == KCAL_CONT_DEFAULT);
++}
++
++/*
++ * Compose panel gamma matrix with KCAL pipeline:
++ * out = Panel x Contrast x Saturation x Hue x Value x Gains
++ * gm[] layout follows the DQE gamma matrix pattern:
++ * coeffs stored <<5 in [1..12], offsets in [13..16].
++ */
++static void dqe_kcal_apply_matrix(int *gm)
++{
++	s32 p[3][3], t[3][3], tmp[3][3], m[3][3];
++	int i, j;
++
++	if (kcal_is_neutral())
++		return;
++
++	/* Panel matrix (coeffs are stored shifted left by 5), else identity */
++	p[0][0] = gm[1];  p[0][1] = gm[5];  p[0][2] = gm[9];
++	p[1][0] = gm[2];  p[1][1] = gm[6];  p[1][2] = gm[10];
++	p[2][0] = gm[3];  p[2][1] = gm[7];  p[2][2] = gm[11];
++
++	if (gm[0]) {
++		for (i = 0; i < 3; i++)
++			for (j = 0; j < 3; j++)
++				p[i][j] *= (KCAL_FP_ONE / 32);
++	} else {
++		memset(p, 0, sizeof(p));
++		p[0][0] = p[1][1] = p[2][2] = KCAL_FP_ONE;
++	}
++
++	/* RGB channel gains */
++	memset(t, 0, sizeof(t));
++	t[0][0] = kcal_fp(kcal_ctrl_data.r, KCAL_GAIN_MAX);
++	t[1][1] = kcal_fp(kcal_ctrl_data.g, KCAL_GAIN_MAX);
++	t[2][2] = kcal_fp(kcal_ctrl_data.b, KCAL_GAIN_MAX);
++
++	/* Value (brightness scale) */
++	{
++		s32 v = kcal_fp(kcal_ctrl_data.val, KCAL_VAL_DEFAULT);
++
++		for (i = 0; i < 3; i++)
++			for (j = 0; j < 3; j++)
++				tmp[i][j] = kcal_fp_mul(t[i][j], v);
++	}
++	memcpy(t, tmp, sizeof(t));
++
++	/* Hue rotation */
++	kcal_mat_hue(m);
++	memcpy(tmp, t, sizeof(t));
++	kcal_mat_mul(t, m, tmp);
++
++	/* Saturation */
++	kcal_mat_sat(m);
++	memcpy(tmp, t, sizeof(t));
++	kcal_mat_mul(t, m, tmp);
++
++	/* Contrast (scale about black) */
++	{
++		s32 cf = kcal_fp(kcal_ctrl_data.cont, KCAL_CONT_DEFAULT);
++
++		for (i = 0; i < 3; i++)
++			for (j = 0; j < 3; j++)
++				t[i][j] = kcal_fp_mul(t[i][j], cf);
++	}
++
++	/* Final composition with panel matrix and re-encode (stored <<5) */
++	kcal_mat_mul(m, p, t);
++
++	gm[1] = clamp_t(s64, ((s64)m[0][0] * 32 + (1 << (KCAL_FP_SHIFT - 1))) >> KCAL_FP_SHIFT,
++			-262112, 262112); /* A: R-row/R-col */
++	gm[5] = clamp_t(s64, ((s64)m[0][1] * 32 + (1 << (KCAL_FP_SHIFT - 1))) >> KCAL_FP_SHIFT,
++			-262112, 262112); /* E: R-row/G-col */
++	gm[9] = clamp_t(s64, ((s64)m[0][2] * 32 + (1 << (KCAL_FP_SHIFT - 1))) >> KCAL_FP_SHIFT,
++			-262112, 262112); /* I: R-row/B-col */
++	gm[2] = clamp_t(s64, ((s64)m[1][0] * 32 + (1 << (KCAL_FP_SHIFT - 1))) >> KCAL_FP_SHIFT,
++			-262112, 262112); /* B */
++	gm[6] = clamp_t(s64, ((s64)m[1][1] * 32 + (1 << (KCAL_FP_SHIFT - 1))) >> KCAL_FP_SHIFT,
++			-262112, 262112); /* F */
++	gm[10] = clamp_t(s64, ((s64)m[1][2] * 32 + (1 << (KCAL_FP_SHIFT - 1))) >> KCAL_FP_SHIFT,
++			-262112, 262112); /* J */
++	gm[3] = clamp_t(s64, ((s64)m[2][0] * 32 + (1 << (KCAL_FP_SHIFT - 1))) >> KCAL_FP_SHIFT,
++			-262112, 262112); /* C */
++	gm[7] = clamp_t(s64, ((s64)m[2][1] * 32 + (1 << (KCAL_FP_SHIFT - 1))) >> KCAL_FP_SHIFT,
++			-262112, 262112); /* G */
++	gm[11] = clamp_t(s64, ((s64)m[2][2] * 32 + (1 << (KCAL_FP_SHIFT - 1))) >> KCAL_FP_SHIFT,
++			-262112, 262112); /* K */
++
++	gm[0] = 1; /* force matrix block on while KCAL is active */
++}
++#else
++static inline bool kcal_is_neutral(void) { return true; }
++static inline void dqe_kcal_apply_matrix(int *gm) { }
++#endif
++/*============== KCAL COLOR CONTROL END ===================*/
++
+ /*
+  * If Gamma Matrix is transferred with this pattern,
+  *
+@@ -1664,7 +1903,6 @@ static void dqe_set_cgc_dither(struct exynos_dqe *dqe,
+  * |Rout|   |A E I||Rin|   |M|
+  * |Gout| = |B F J||Gin| + |N|
+  * |Bout|   |C G K||Bin|   |O|
+- *
+  */
+ static void dqe_set_gamma_matrix(struct exynos_dqe *dqe,
+ 				struct dqe_ctx_int *lut, bool clrForced)
+@@ -1675,6 +1913,17 @@ static void dqe_set_gamma_matrix(struct exynos_dqe *dqe,
+ 	int bound, tmp;
+ 	u32 shift;
+ 
++#ifdef CONFIG_KCAL_CTRL
++	/* Apply KCAL on a copy so the stored panel tuning stays untouched */
++	int kcal_matrix[17];
++
++	if (!kcal_is_neutral()) {
++		memcpy(kcal_matrix, gamma_matrix, sizeof(kcal_matrix));
++		dqe_kcal_apply_matrix(kcal_matrix);
++		gamma_matrix = kcal_matrix;
++	}
++#endif
++
+ 	dqe_debug(dqe, "\n");
+ 
+ 	dqe_get_bpc_info(dqe, &shift, NULL, 0);
+@@ -2723,6 +2972,117 @@ static ssize_t dqe_gamma_store(struct exynos_dqe *dqe,
+ 
+ DQE_CREATE_SYSFS_FUNC(gamma);
+ 
++#ifdef CONFIG_KCAL_CTRL
++static void kcal_refresh(struct exynos_dqe *dqe)
++{
++	if (!dqe || !dqe_lut)
++		return;
++
++	mutex_lock(&dqe->lock);
++	if (mode_idx == DQE_MODE_MAIN) {
++		dqe_set_gamma_matrix(dqe, &dqe_lut[DQE_MODE_MAIN], true);
++		dqe_reset_crc(dqe, DQE_COLORMODE_ID_GAMMA_MATRIX);
++	}
++	dqe_reset_update_cnt(dqe, DQE_RESET_GLOBAL, DQE_RESET_OPT);
++	mutex_unlock(&dqe->lock);
++}
++
++static ssize_t kcal_show(struct device *dev,
++				struct device_attribute *attr, char *buf)
++{
++	struct kcal_ctrl *k = &kcal_ctrl_data;
++
++	return snprintf(buf, PAGE_SIZE, "%d %d %d\n", k->r, k->g, k->b);
++}
++
++static ssize_t kcal_store(struct device *dev,
++				struct device_attribute *attr,
++				const char *buf, size_t count)
++{
++	struct exynos_dqe *dqe = dev_get_drvdata(dev);
++	struct kcal_ctrl *k = &kcal_ctrl_data;
++	int values[3];
++
++	if (!dqe || dqe_lut == NULL)
++		return -1;
++	if (sscanf(buf, "%d %d %d", &values[0], &values[1], &values[2]) != 3)
++		return -EINVAL;
++
++	mutex_lock(&dqe->lock);
++	k->r = clamp_t(int, values[0], 0, KCAL_GAIN_MAX);
++	k->g = clamp_t(int, values[1], 0, KCAL_GAIN_MAX);
++	k->b = clamp_t(int, values[2], 0, KCAL_GAIN_MAX);
++	mutex_unlock(&dqe->lock);
++
++	kcal_refresh(dqe);
++	pr_info("kcal: rgb %d %d %d\n", k->r, k->g, k->b);
++	return count;
++}
++static DEVICE_ATTR(kcal, 0664, kcal_show, kcal_store);
++
++#define KCAL_INT_ATTR(_name, _member, _min, _max) \
++static ssize_t kcal_##_name##_show(struct device *dev, \
++				struct device_attribute *attr, char *buf) \
++{ \
++	return snprintf(buf, PAGE_SIZE, "%d\n", kcal_ctrl_data._member); \
++} \
++static ssize_t kcal_##_name##_store(struct device *dev, \
++				struct device_attribute *attr, \
++				const char *buf, size_t count) \
++{ \
++	struct exynos_dqe *dqe = dev_get_drvdata(dev); \
++	struct kcal_ctrl *k = &kcal_ctrl_data; \
++	int value; \
++\
++	if (!dqe || dqe_lut == NULL) \
++		return -1; \
++	if (kstrtoint(buf, 0, &value)) \
++		return -EINVAL; \
++\
++	mutex_lock(&dqe->lock); \
++	k->_member = clamp_t(int, value, _min, _max); \
++	mutex_unlock(&dqe->lock); \
++\
++	if (strcmp(#_name, "min") && strcmp(#_name, "max")) \
++		kcal_refresh(dqe); \
++	pr_info("kcal: " #_name " %d\n", k->_member); \
++	return count; \
++} \
++static DEVICE_ATTR(_name, 0664, kcal_##_name##_show, kcal_##_name##_store)
++
++KCAL_INT_ATTR(kcal_hue, hue, 0, 1536);
++KCAL_INT_ATTR(kcal_sat, sat, KCAL_SAT_MIN, KCAL_SAT_MAX);
++KCAL_INT_ATTR(kcal_val, val, 0, KCAL_VAL_MAX);
++KCAL_INT_ATTR(kcal_cont, cont, KCAL_CONT_MIN, KCAL_CONT_MAX);
++KCAL_INT_ATTR(kcal_min, min, 1, 32767);
++KCAL_INT_ATTR(kcal_max, max, 1, 32767);
++
++static ssize_t kcal_enable_show(struct device *dev,
++				struct device_attribute *attr, char *buf)
++{
++	return snprintf(buf, PAGE_SIZE, "%d\n", kcal_ctrl_data.enable ? 1 : 0);
++}
++
++static ssize_t kcal_enable_store(struct device *dev,
++				struct device_attribute *attr,
++				const char *buf, size_t count)
++{
++	struct exynos_dqe *dqe = dev_get_drvdata(dev);
++	bool enable;
++
++	if (!dqe || dqe_lut == NULL)
++		return -1;
++	if (kstrtobool(buf, &enable))
++		return -EINVAL;
++
++	kcal_ctrl_data.enable = enable;
++	kcal_refresh(dqe);
++	pr_info("kcal: enable %d\n", kcal_ctrl_data.enable);
++	return count;
++}
++static DEVICE_ATTR(kcal_enable, 0664, kcal_enable_show, kcal_enable_store);
++#endif
++
+ static ssize_t dqe_degamma_ext_show(struct exynos_dqe *dqe,
+ 					struct dqe_ctx_int *lut, char *buf)
+ {
+@@ -3255,6 +3615,16 @@ static struct device_attribute *dqe_attrs[] = {
+ 	&dev_attr_dqe_ver,
+ 	&dev_attr_dim_status,
+ 	&dev_attr_dump,
++#ifdef CONFIG_KCAL_CTRL
++	&dev_attr_kcal,
++	&dev_attr_kcal_enable,
++	&dev_attr_kcal_hue,
++	&dev_attr_kcal_sat,
++	&dev_attr_kcal_val,
++	&dev_attr_kcal_cont,
++	&dev_attr_kcal_min,
++	&dev_attr_kcal_max,
++#endif
+ 	NULL,
+ };
+ /*============== CREATE SYSFS END ===================*/

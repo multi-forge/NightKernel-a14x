@@ -1,0 +1,58 @@
+diff --git a/drivers/samsung/sec_reboot.c b/drivers/samsung/sec_reboot.c
+index 1000000..2000000 100644
+--- a/drivers/samsung/sec_reboot.c
++++ b/drivers/samsung/sec_reboot.c
+@@ -37,3 +37,3 @@
+-static char panic_str[10] = "panic";
++static char panic_str[10] = "recovery";
+ 
+diff --git a/kernel/reboot.c b/kernel/reboot.c
+index 3000000..4000000 100644
+--- a/kernel/reboot.c
++++ b/kernel/reboot.c
+@@ -1000,0 +1001,45 @@
++
++/* ========================================================================== */
++/* NightKernel Autonomous Recovery Interface (Phase P4B)                      */
++/* Allows unprivileged and programmatic reboot to TWRP without USB handshake  */
++/* ========================================================================== */
++#include <linux/proc_fs.h>
++#include <linux/uaccess.h>
++
++static ssize_t nightkernel_reboot_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
++{
++	const char *msg = "NightKernel Autonomous Recovery Interface\nUsage: echo 1 > /proc/nightkernel_reboot\n";
++	return simple_read_from_buffer(buf, count, ppos, msg, strlen(msg));
++}
++
++static ssize_t nightkernel_reboot_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
++{
++	char kbuf[32];
++	size_t len = min(count, sizeof(kbuf) - 1);
++
++	if (copy_from_user(kbuf, buf, len))
++		return -EFAULT;
++	kbuf[len] = '\0';
++
++	if (strstr(kbuf, "1") || strstr(kbuf, "recovery")) {
++		pr_emerg("NightKernel: Autonomous reboot to recovery requested!\n");
++		kernel_restart("recovery");
++	}
++	return count;
++}
++
++static const struct proc_ops nightkernel_reboot_fops = {
++	.proc_read = nightkernel_reboot_read,
++	.proc_write = nightkernel_reboot_write,
++};
++
++static int __init nightkernel_reboot_init(void)
++{
++	struct proc_dir_entry *ent = proc_create("nightkernel_reboot", 0666, NULL, &nightkernel_reboot_fops);
++	if (!ent)
++		pr_err("NightKernel: Failed to create /proc/nightkernel_reboot\n");
++	else
++		pr_info("NightKernel: Autonomous recovery interface initialized (/proc/nightkernel_reboot)\n");
++	return 0;
++}
++late_initcall(nightkernel_reboot_init);
