@@ -291,7 +291,7 @@
 
 							resource@1 {
 								resource,label = "cluster1";
-								resource,value = <0x18e700 0x101d00>;
+								resource,value = <0x119400 0x101d00>;
 							};
 
 							resource@4 {
@@ -317,7 +317,7 @@
 
 							resource@1 {
 								resource,label = "cluster1";
-								resource,value = <0x18e700 0x101d00>;
+								resource,value = <0x119400 0x101d00>;
 							};
 
 							resource@4 {

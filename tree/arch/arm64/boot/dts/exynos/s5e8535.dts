@@ -9004,7 +9004,7 @@
 	};
 
 	chosen {
-		bootargs = "console=ram loglevel=4 printk.devkmsg=on arm64.nopauth arm64.nomte kasan=off clocksource=arch_sys_counter clk_ignore_unused firmware_class.path=/vendor/firmware transparent_hugepage=madvise init_on_alloc=0 kfence.sample_interval=0 swiotlb=noforce loop.max_part=7 cgroup.memory=nokmem";
+		bootargs = "console=ram printk.devkmsg=on arm64.nopauth arm64.nomte nokaslr kasan=off clocksource=arch_sys_counter clk_ignore_unused firmware_class.path=/vendor/firmware rcupdate.rcu_expedited=1 swiotlb=noforce loop.max_part=7 cgroup.memory=nokmem";
 		linux,initrd-start = <0x84000000>;
 		linux,initrd-end = <0x84ffffff>;
 		phandle = <0x230>;
