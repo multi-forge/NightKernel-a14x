@@ -25,20 +25,14 @@ Custom Linux kernel for the **Samsung Galaxy A14 5G** (`SM-A146M` / `SM-A146B`, 
 
 ## Features
 
-### Autonomous Recovery (`/proc/nightkernel_reboot`)
-Samsung's stock bootloader (`sboot`) on Exynos 1330 enforces a restriction requiring an active USB cable connected to a PC or charger before accepting hardware keys (`Power + Vol Up`) for recovery. Without a USB connection, cold reboots jump straight into Android.
-- **Kernel-level fix:** In `drivers/samsung/sec_reboot.c`, issuing `recovery` writes the hardware magic code `SEC_RESET_REASON_RECOVERY` directly into the Samsung PMU retention registers (`panic_inform` / `regmap_write`).
-- **Procfs node:** World-writable (`0666`) interface at `/proc/nightkernel_reboot`. Run:
-  ```bash
-  echo 1 > /proc/nightkernel_reboot
-  ```
-  to reboot immediately into TWRP without needing a computer or cable.
-- **Hardware key shortcut:** Holding `Power + Vol Up` while rebooting the system also routes directly to recovery.
-- **Panic-to-Recovery:** Kernel panic handler defaults to `"recovery"` instead of `"panic"`, safely booting into TWRP rather than freezing in upload mode or bootlooping.
+### Panic-to-Recovery Failsafe
+Samsung's stock bootloader (`sboot`) on Exynos 1330 enforces restrictions when handling recovery boots. NightKernel patches the reset behavior at the kernel level:
+- **Panic-to-Recovery:** In `drivers/samsung/sec_reboot.c`, the kernel panic handler defaults to `"recovery"` instead of `"panic"`, writing `SEC_RESET_REASON_RECOVERY` into Samsung PMU retention registers. If a kernel panic occurs, the device safely boots into TWRP recovery rather than freezing in upload mode or entering an unrecoverable bootloop.
+- **Hardware key handling:** Holding `Power + Vol Up` during system reboot directs straight to recovery without requiring an active USB cable connected to a PC.
 
-### Root & Integrity Bypass (ReSukiSU 3.0.0 + SuSFS 2.1.0)
+### Root Stealth (ReSukiSU 3.0.0 + SuSFS 2.1.0)
 - **ReSukiSU 3.0.0:** Integrated directly into kernel source with supercall protection patches in `dispatch.c`.
-- **SuSFS 2.1.0:** Kernel-level VFS isolation hiding root mounts (`sus_mount`), memory maps (`sus_map`), and inode attributes (`sus_kstat_redirect`). Passes Google Play Integrity (`MEETS_DEVICE_INTEGRITY`) and banking app security checks.
+- **SuSFS 2.1.0:** Kernel-level VFS isolation hiding root mounts (`sus_mount`), memory maps (`sus_map`), and inode attributes (`sus_kstat_redirect`). Helps hide root and bypass root detection in apps. *Note: SuSFS assists root stealth, but passing Play Integrity depends on your overall ROM/keystore configuration.*
 - **Uname spoofing:** Configurable kernel release string at runtime (`sus_set_uname`).
 
 ### Windows NT Synchronization (NTSync)

@@ -24,20 +24,14 @@ Custom kernel Linux para o **Samsung Galaxy A14 5G** (`SM-A146M` / `SM-A146B`, c
 
 ## Recursos e Modificações
 
-### Autonomous Recovery (`/proc/nightkernel_reboot`)
-No bootloader stock da Samsung (`sboot`) do Exynos 1330, existe uma trava que exige cabo USB conectado ao PC ou carregador para reconhecer os botões físicos (`Power + Vol Up`) no boot a frio. Sem USB, o celular ignora os botões e inicia o Android normalmente.
-- **Solução no kernel:** Em `drivers/samsung/sec_reboot.c`, o comando `recovery` grava diretamente o código `SEC_RESET_REASON_RECOVERY` nos registradores de retenção da PMU da Samsung (`panic_inform` / `regmap_write`).
-- **Interface procfs:** Nó com permissão de escrita universal (`0666`) em `/proc/nightkernel_reboot`. Execute como root:
-  ```bash
-  echo 1 > /proc/nightkernel_reboot
-  ```
-  para reiniciar imediatamente no TWRP sem precisar de cabo ou computador.
-- **Atalho no reboot:** Segurar `Power + Vol Up` durante o reinício do sistema também entra direto no TWRP.
-- **Panic-to-Recovery:** O manipulador de pânico do kernel redireciona falhas críticas para `"recovery"`, fazendo o aparelho reiniciar em segurança no TWRP em vez de travar na tela preta ou modo de upload.
+### Failsafe Panic-to-Recovery
+No bootloader stock da Samsung (`sboot`) do Exynos 1330, existem restrições no direcionamento de reinicialização para recovery. O NightKernel ajusta esse comportamento diretamente no kernel:
+- **Panic-to-Recovery:** Em `drivers/samsung/sec_reboot.c`, o manipulador de pânico do kernel grava diretamente o código `SEC_RESET_REASON_RECOVERY` nos registradores de retenção da PMU. Se ocorrer um kernel panic, o aparelho reinicia em segurança direto no TWRP recovery em vez de entrar em bootloop severo ou travar em upload mode.
+- **Atalho no reboot:** Segurar `Power + Vol Up` durante o reinício do sistema também direciona para o TWRP sem exigir cabo USB conectado a um PC.
 
-### Root e Evasão de Detecção (ReSukiSU 3.0.0 + SuSFS 2.1.0)
+### Ocultamento de Root (ReSukiSU 3.0.0 + SuSFS 2.1.0)
 - **ReSukiSU 3.0.0:** Integrado diretamente na árvore de código com patches de proteção de supercall em `dispatch.c`.
-- **SuSFS 2.1.0:** Isolamento em nível de VFS que oculta montagens de root (`sus_mount`), mapas de memória (`sus_map`) e atributos de arquivo (`sus_kstat_redirect`). Passa no Google Play Integrity (`MEETS_DEVICE_INTEGRITY`) e em aplicativos bancários.
+- **SuSFS 2.1.0:** Isolamento em nível de VFS que oculta montagens de root (`sus_mount`), mapas de memória (`sus_map`) e atributos de arquivo (`sus_kstat_redirect`). Ajuda a ocultar vestígios de root de aplicativos e verificações. *Nota: O SuSFS auxilia na ocultação do root, mas a aprovação de Play Integrity depende da integridade da ROM e do keystore do usuário.*
 - **Uname spoofing:** Permite alterar a string pública da versão do kernel em tempo de execução (`sus_set_uname`).
 
 ### Sincronização Windows NT (NTSync)
