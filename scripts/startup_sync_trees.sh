@@ -38,16 +38,14 @@ git checkout main
 # 3. Clone TWRP device tree into tree-recovery/
 echo "=== IMPORTING TWRP DEVICE TREE ==="
 rm -rf tree-recovery
-git clone --depth=1 https://x-access-token:${GH_TOKEN}@github.com/multi-forge/android_device_samsung_a14x.git /tmp/dt_repo
-mkdir -p tree-recovery
-rsync -av --exclude='.git' /tmp/dt_repo/ tree-recovery/
-rm -rf /tmp/dt_repo
+git clone --depth=1 https://x-access-token:${GH_TOKEN}@github.com/multi-forge/android_device_samsung_a14x.git tree-recovery
+rm -rf tree-recovery/.git
 
 # 4. Clone and patch Kernel Tree into tree/
 echo "=== PREPARING PATCHED KERNEL TREE ==="
-rm -rf tree /tmp/kernel_src
-git clone --depth=1 -b V-sd-perm https://github.com/physwizz/a146b-a146m.git /tmp/kernel_src
-cd /tmp/kernel_src
+rm -rf tree
+git clone --depth=1 -b V-sd-perm https://github.com/physwizz/a146b-a146m.git tree
+cd tree
 
 # Apply Patch 1: Autonomous Recovery
 sed -i 's/static char panic_str\[10\] = "panic";/static char panic_str\[10\] = "recovery";/' drivers/samsung/sec_reboot.c
@@ -106,7 +104,7 @@ patch -p1 -d KernelSU < /work/repo/patches/03_resukisu_safety.patch || true
 
 # Apply Patch 2: SuSFS 2.1.0
 git clone --depth=1 -b gki-android13-5.15 https://gitlab.com/simonpunk/susfs4ksu.git /tmp/susfs_repo
-cd /tmp/susfs_repo && git checkout 9f0415bb2c8fc581e93d384e09aba088bd36733a || true && cd /tmp/kernel_src
+cd /tmp/susfs_repo && git checkout 9f0415bb2c8fc581e93d384e09aba088bd36733a || true && cd /work/repo/tree
 cp -rf /tmp/susfs_repo/kernel_patches/fs/* fs/
 cp -rf /tmp/susfs_repo/kernel_patches/include/linux/* include/linux/
 patch -p1 --forward < /tmp/susfs_repo/kernel_patches/50_add_susfs_in_gki-android13-5.15.patch || true
@@ -136,11 +134,8 @@ rm -rf .git
 # Copy defconfig into place
 cp /work/repo/configs/nightkernel_v1.2_defconfig arch/arm64/configs/nightkernel_v1.2_defconfig
 
-# Move into repo/tree
+# Return to repo root
 cd /work/repo
-mkdir -p tree
-rsync -av /tmp/kernel_src/ tree/
-rm -rf /tmp/kernel_src
 
 # 5. Commit and push
 echo "=== COMMITTING AND PUSHING TREES TO GITHUB ==="
