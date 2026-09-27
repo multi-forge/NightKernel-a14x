@@ -1798,8 +1798,10 @@ static void __clk_recalc_rates(struct clk_core *core, unsigned long msg)
 
 static unsigned long clk_core_get_rate_recalc(struct clk_core *core)
 {
-	if (core && (core->flags & CLK_GET_RATE_NOCACHE))
-		__clk_recalc_rates(core, 0);
+	if (core && (core->flags & CLK_GET_RATE_NOCACHE)) {
+		if (core->prepare_count > 0 || core->enable_count > 0)
+			__clk_recalc_rates(core, 0);
+	}
 
 	return clk_core_get_rate_nolock(core);
 }
