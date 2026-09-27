@@ -210,7 +210,7 @@ grep "CONFIG_KSU_SUSFS=y" .config
 grep "CONFIG_NTSYNC=y" .config
 grep "CONFIG_BBG=y" .config
 grep "CONFIG_KCAL_CTRL=y" .config
-grep "CONFIG_SND_SOC_SMA1305=y" .config
+grep "CONFIG_SND_SOC_RT5691=m" .config
 grep "CONFIG_DEBUG_INFO_BTF=y" .config
 
 # 14. Compile Kernel
