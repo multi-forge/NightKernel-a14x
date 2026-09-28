@@ -1,0 +1,199 @@
+diff --git a/drivers/input/input_boost/input_booster.c b/drivers/input/input_boost/input_booster.c
+index a3d8872b3..f0b6fac0f 100644
+--- a/drivers/input/input_boost/input_booster.c
++++ b/drivers/input/input_boost/input_booster.c
+@@ -91,7 +91,7 @@ void trigger_input_booster(struct work_struct *work)
+ 		// Make ib instance with all needed factor.
+ 		ib = create_ib_instance(p_IbTrigger, uniq_id);
+ 
+-		pr_info(ITAG" IB Trigger Press :: IB Uniq Id(%d)", uniq_id);
++		pr_debug(ITAG" IB Trigger Press :: IB Uniq Id(%d)", uniq_id);
+ 
+ 		if (ib == NULL) {
+ 			mutex_unlock(&trigger_ib_lock);
+@@ -145,7 +145,7 @@ void trigger_input_booster(struct work_struct *work)
+ 		mutex_unlock(&mem_lock);
+ 
+ 		mutex_lock(&ib->lock);
+-		pr_info(ITAG" IB Trigger Release :: Uniq ID(%d)", ib->uniq_id);
++		pr_debug(ITAG" IB Trigger Release :: Uniq ID(%d)", ib->uniq_id);
+ 		ib->rel_flag = FLAG_ON;
+ 		if(ib->ib_dt->tail_time == 0) {
+ 			pr_booster(" IB tail time is 0");
+@@ -265,7 +265,7 @@ void press_state_func(struct work_struct* work)
+ 
+ 	struct t_ib_info* target_ib = container_of(work, struct t_ib_info, ib_state_work[IB_HEAD]);
+ 
+-	pr_info(ITAG" Press State Func :::: Unique_Id(%d)", target_ib->uniq_id);
++	pr_debug(ITAG" Press State Func :::: Unique_Id(%d)", target_ib->uniq_id);
+ 
+ 	// Get_Res_List(head) and update head value.
+ 	for (res_type = 0; res_type < allowed_res_count; res_type++) {
+@@ -306,7 +306,7 @@ void press_timeout_func(struct work_struct* work)
+ 	if (!target_ib)
+ 		return;
+ 
+-	pr_info(ITAG" Press Timeout Func :::: Unique_Id(%d) Tail_Time(%d)",
++	pr_debug(ITAG" Press Timeout Func :::: Unique_Id(%d) Tail_Time(%d)",
+ 		target_ib->uniq_id, target_ib->ib_dt->tail_time);
+ 
+ 	int res_type;
+@@ -327,7 +327,7 @@ void press_timeout_func(struct work_struct* work)
+ 
+ 			tv = find_update_target(target_ib->uniq_id, res.res_id);
+ 			if (tv == NULL) {
+-				pr_err(ITAG" Press Timeout Func :::: %d's TV No Exist(%d)",
++				pr_debug(ITAG" Press Timeout Func :::: %d's TV No Exist(%d)",
+ 					target_ib->uniq_id, res.res_id);
+ 				continue;
+ 			}
+@@ -383,7 +383,7 @@ void release_state_func(struct work_struct* work)
+ 
+ 	target_ib->isHeadFinished = 1;
+ 
+-	pr_info(ITAG" Release State Func :::: Unique_Id(%d) Rel_Flag(%d)",
++	pr_debug(ITAG" Release State Func :::: Unique_Id(%d) Rel_Flag(%d)",
+ 		target_ib->uniq_id, target_ib->rel_flag);
+ 
+ 	for (res_type = 0; res_type < allowed_res_count; res_type++) {
+@@ -413,7 +413,7 @@ void release_state_func(struct work_struct* work)
+ 				&(target_ib->ib_timeout_work[IB_TAIL]),
+ 				msecs_to_jiffies(target_ib->ib_dt->tail_time));
+ 		} else {
+-			pr_err(ITAG" Release State Func :: tail timeout start");
++			pr_debug(ITAG" Release State Func :: tail timeout start");
+ 		}
+ 	} else {
+ 		queue_delayed_work(ib_handle_highwq,
+@@ -436,14 +436,14 @@ void release_timeout_func(struct work_struct* work)
+ 	if(!target_ib)
+ 		return;
+ 
+-	pr_info(ITAG" Release Timeout Func :::: Unique_Id(%d)", target_ib->uniq_id);
++	pr_debug(ITAG" Release Timeout Func :::: Unique_Id(%d)", target_ib->uniq_id);
+ 	mutex_lock(&sip_rel_lock);
+ 	for (res_type = 0; res_type < allowed_res_count; res_type++) {
+ 		res = target_ib->ib_dt->res[allowed_resources[res_type]];
+ 
+ 		tv = find_update_target(target_ib->uniq_id, res.res_id);
+ 		if (tv == NULL) {
+-			pr_err(ITAG" Release Timeout Func :::: %d's TV No Exist(%d)",
++			pr_debug(ITAG" Release Timeout Func :::: %d's TV No Exist(%d)",
+ 				target_ib->uniq_id, res.res_id);
+ 			continue;
+ 		}
+@@ -542,7 +542,7 @@ void remove_ib_instance(struct t_ib_info* target_ib)
+ 		list_del_rcu(&(target_ib->list));
+ 		spin_unlock(&write_ib_lock);
+ 		synchronize_rcu();
+-		pr_info(ITAG" Del Ib Instance's Id : %d", target_ib->uniq_id);
++		pr_debug(ITAG" Del Ib Instance's Id : %d", target_ib->uniq_id);
+ 		mutex_lock(&mem_lock);
+ 		if (target_ib != NULL) {
+ 			kfree(target_ib);
+diff --git a/drivers/input/input_boost/input_booster_mode.c b/drivers/input/input_boost/input_booster_mode.c
+index 24099e99d..d7d1dffbe 100644
+--- a/drivers/input/input_boost/input_booster_mode.c
++++ b/drivers/input/input_boost/input_booster_mode.c
+@@ -94,7 +94,7 @@ void trigger_input_booster(struct work_struct *work)
+ 		// Make ib instance with all needed factor.
+ 		ib = create_ib_instance(p_IbTrigger, uniq_id);
+ 
+-		pr_info(ITAG" IB Trigger Press :: IB Uniq Id(%d)\n", uniq_id);
++		pr_debug(ITAG" IB Trigger Press :: IB Uniq Id(%d)\n", uniq_id);
+ 
+ 		if (ib == NULL || ib->ib_dt == NULL || ib->ib_dt->res == NULL) {
+ 			mutex_unlock(&trigger_ib_lock);
+@@ -155,7 +155,7 @@ void trigger_input_booster(struct work_struct *work)
+ 		mutex_unlock(&mem_lock);
+ 
+ 		mutex_lock(&ib->lock);
+-		pr_info(ITAG" IB Trigger Release :: Uniq ID(%d)\n", ib->uniq_id);
++		pr_debug(ITAG" IB Trigger Release :: Uniq ID(%d)\n", ib->uniq_id);
+ 		ib->rel_flag = FLAG_ON;
+ 		if(ib->ib_dt->tail_time == 0) {
+ 			pr_booster(" IB tail time is 0");
+@@ -290,7 +290,7 @@ void press_state_func(struct work_struct* work)
+ 
+ 	struct t_ib_info* target_ib = container_of(work, struct t_ib_info, ib_state_work[IB_HEAD]);
+ 
+-	pr_info(ITAG" Press State Func :::: Unique_Id(%d) Head_Time(%d)\n",
++	pr_debug(ITAG" Press State Func :::: Unique_Id(%d) Head_Time(%d)\n",
+ 		target_ib->uniq_id, target_ib->ib_dt->head_time);
+ 
+ 	// Get_Res_List(head) and update head value.
+@@ -330,7 +330,7 @@ void press_timeout_func(struct work_struct* work)
+ 	if (!target_ib)
+ 		return;
+ 
+-	pr_info(ITAG" Press Timeout Func :::: Unique_Id(%d) Tail_Time(%d)\n",
++	pr_debug(ITAG" Press Timeout Func :::: Unique_Id(%d) Tail_Time(%d)\n",
+ 		target_ib->uniq_id, target_ib->ib_dt->tail_time);
+ 
+ 	int res_type;
+@@ -351,7 +351,7 @@ void press_timeout_func(struct work_struct* work)
+ 
+ 			tv = find_update_target(target_ib->uniq_id, res.res_id);
+ 			if (tv == NULL) {
+-				pr_err(ITAG" Press Timeout Func :::: %d's TV No Exist(%d)\n",
++				pr_debug(ITAG" Press Timeout Func :::: %d's TV No Exist(%d)\n",
+ 					target_ib->uniq_id, res.res_id);
+ 				continue;
+ 			}
+@@ -407,7 +407,7 @@ void release_state_func(struct work_struct* work)
+ 
+ 	target_ib->isHeadFinished = 1;
+ 
+-	pr_info(ITAG" Release State Func :::: Unique_Id(%d) Rel_Flag(%d)\n",
++	pr_debug(ITAG" Release State Func :::: Unique_Id(%d) Rel_Flag(%d)\n",
+ 		target_ib->uniq_id, target_ib->rel_flag);
+ 
+ 	for (res_type = 0; res_type < allowed_res_count; res_type++) {
+@@ -437,7 +437,7 @@ void release_state_func(struct work_struct* work)
+ 				&(target_ib->ib_timeout_work[IB_TAIL]),
+ 				msecs_to_jiffies(target_ib->ib_dt->tail_time));
+ 		} else {
+-			pr_err(ITAG" Release State Func :: tail timeout start\n");
++			pr_debug(ITAG" Release State Func :: tail timeout start\n");
+ 		}
+ 	} else {
+ 		queue_delayed_work(ib_handle_highwq,
+@@ -460,14 +460,14 @@ void release_timeout_func(struct work_struct* work)
+ 	if(!target_ib)
+ 		return;
+ 
+-	pr_info(ITAG" Release Timeout Func :::: Unique_Id(%d)\n", target_ib->uniq_id);
++	pr_debug(ITAG" Release Timeout Func :::: Unique_Id(%d)\n", target_ib->uniq_id);
+ 	mutex_lock(&sip_rel_lock);
+ 	for (res_type = 0; res_type < allowed_res_count; res_type++) {
+ 		res = target_ib->ib_dt->res[allowed_resources[res_type]];
+ 
+ 		tv = find_update_target(target_ib->uniq_id, res.res_id);
+ 		if (tv == NULL) {
+-			pr_err(ITAG" Release Timeout Func :::: %d's TV No Exist(%d)\n",
++			pr_debug(ITAG" Release Timeout Func :::: %d's TV No Exist(%d)\n",
+ 				target_ib->uniq_id, res.res_id);
+ 			continue;
+ 		}
+@@ -569,7 +569,7 @@ void remove_ib_instance(struct t_ib_info* target_ib)
+ 		list_del_rcu(&(target_ib->list));
+ 		spin_unlock(&write_ib_lock);
+ 		synchronize_rcu();
+-		pr_info(ITAG" Del Ib Instance's Id : %d\n", target_ib->uniq_id);
++		pr_debug(ITAG" Del Ib Instance's Id : %d\n", target_ib->uniq_id);
+ 		mutex_lock(&mem_lock);
+ 		if (target_ib != NULL) {
+ 			kfree(target_ib);
+diff --git a/fs/dcache.c b/fs/dcache.c
+index 452668c96..bfaec4d66 100644
+--- a/fs/dcache.c
++++ b/fs/dcache.c
+@@ -71,7 +71,7 @@
+  * If no ancestor relationship:
+  * arbitrary, since it's serialized on rename_lock
+  */
+-int sysctl_vfs_cache_pressure __read_mostly = 100;
++int sysctl_vfs_cache_pressure __read_mostly = 60;
+ EXPORT_SYMBOL_GPL(sysctl_vfs_cache_pressure);
+ 
+ __cacheline_aligned_in_smp DEFINE_SEQLOCK(rename_lock);

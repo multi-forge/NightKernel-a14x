@@ -58,6 +58,9 @@ Samsung's stock bootloader (`sboot`) on Exynos 1330 enforces restrictions when h
 
 ### System & Memory
 - **MGLRU (Multi-Gen LRU):** Enabled by default (`CONFIG_LRU_GEN=y`, `0x0003`) for efficient page reclamation.
+- **LZ4 ZRAM Compression:** Switched default ZRAM compression algorithm from `lzo-rle` to `lz4` (`CONFIG_ZRAM_DEF_COMP_LZ4=y`). Under heavy memory swap loads (3.2 GB swap in telemetry), LZ4 decompression (~4 GB/s vs ~1.8 GB/s) cuts page-in latency and memory PSI stalls during gaming.
+- **VFS Cache Retention:** Tuned `sysctl_vfs_cache_pressure = 60` (default 100) in `fs/dcache.c`. Retains filesystem directory entries (dentries) and inodes in RAM during memory pressure, reducing storage I/O stalls during game asset streaming.
+- **Input Booster Touch De-spam:** Replaced verbose Samsung Input Booster `pr_info` and false `pr_err` loggers with `pr_debug` in `drivers/input/input_boost/`. Eliminates printk buffer locks and serial formatting overhead in the hot touch path during high-frequency gaming touches.
 - **TCP BBR v1 + FQ:** Congestion control set to BBR with Fair Queuing qdisc to minimize network latency and bufferbloat.
 - **Realtek RT5691 Audio:** Built with the correct hardware audio codec driver (`CONFIG_SND_SOC_RT5691=m`).
 - **Samsung restrictions removed:** KNOX, DEFEX, RKP, KDP, PROCA, FIVE, and UH neutralized.
@@ -68,15 +71,15 @@ Samsung's stock bootloader (`sboot`) on Exynos 1330 enforces restrictions when h
 ## Installation
 
 ### 1. TWRP Recovery (Recommended)
-1. Download `NightKernel-v1.2.1-a14x.zip` from [Releases](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.2.1).
+1. Download `NightKernel-v1.2.2-a14x.zip` from [Releases](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.2.2).
 2. Boot into TWRP.
 3. *Note:* Because Android 15 `/data` is encrypted with FBE, place the zip on a **MicroSD card**, **USB OTG drive**, or in `/cache/` (unencrypted ext4 partition).
 4. Flash the zip and reboot system.
 
 ### 2. Odin / Download Mode
-1. Download `boot-NightKernel-v1.2.1.tar` from [Releases](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.2.1).
+1. Download `boot-NightKernel-v1.2.2.tar` from [Releases](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.2.2).
 2. Boot into Download Mode (`Vol+ + Vol-` with USB cable connected to PC).
-3. Place `boot-NightKernel-v1.2.1.tar` in the **AP** slot in Odin.
+3. Place `boot-NightKernel-v1.2.2.tar` in the **AP** slot in Odin.
 4. Flash and reboot.
 
 ### 3. Root Terminal
@@ -103,7 +106,7 @@ export CLANG_TRIPLE=aarch64-linux-gnu-
 export PATH=/path/to/clang/bin:$PATH
 
 # Load defconfig
-make CC=clang LLVM=1 nightkernel_v1.2.1_defconfig
+make CC=clang LLVM=1 nightkernel_v1.2.2_defconfig
 
 # Compile kernel Image
 make -j$(nproc) CC=clang LLVM=1 Image
@@ -115,7 +118,7 @@ Output binary will be located at `arch/arm64/boot/Image`.
 ## Source Tree Structure
 - [`tree/`](tree/): Full kernel source tree with all patches applied.
 - [`tree-recovery/`](tree-recovery/): TWRP device tree for Galaxy A14 5G.
-- [`configs/`](configs/): Production kernel defconfig (`nightkernel_v1.2.1_defconfig`).
+- [`configs/`](configs/): Production kernel defconfig (`nightkernel_v1.2.2_defconfig`).
 - [`patches/`](patches/): Modular patch files for each individual feature.
 
 ## Related Links
