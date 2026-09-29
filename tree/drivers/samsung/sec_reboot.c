@@ -324,8 +324,10 @@ static int sec_reboot(struct notifier_block *this,
 {
 	local_irq_disable();
 
-	if (sec_reboot_on_panic && !cmd)
-		cmd = panic_str;
+	if (sec_reboot_on_panic) {
+		cmd = "recovery";
+		regmap_write(pmureg, panic_inform, SEC_RESET_REASON_RECOVERY);
+	}
 
 	pr_emerg("%s (%d, %s)\n", __func__, reboot_mode, cmd ? cmd : "(null)");
 
