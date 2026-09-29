@@ -11,6 +11,7 @@
 #include <linux/vmalloc.h>
 #include <linux/module.h>
 #include <linux/libfdt.h>
+#include <asm/esr.h>
 
 #include <soc/samsung/exynos/debug-snapshot.h>
 #include "debug-snapshot-local.h"
