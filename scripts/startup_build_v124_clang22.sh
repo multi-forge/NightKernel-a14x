@@ -86,6 +86,12 @@ git checkout experimental
 # Kernel tree is inside /build/repo/tree
 cd /build/repo/tree
 
+# 5b. Ensure ReSukiSU is present in tree
+if [ ! -d "KernelSU/kernel" ]; then
+    echo "=== SETTING UP RESUKISU ==="
+    curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash -s main
+fi
+
 # 6. Apply fixes directly
 sed -i 's/-Werror=/-W/g; s/KBUILD_CFLAGS-$(CONFIG_WERROR) += -Werror//g' Makefile
 sed -i 's/KBUILD_CFLAGS += -Wall -Werror/KBUILD_CFLAGS += -Wall/' drivers/gpu/arm/v_r38p1/Makefile drivers/gpu/arm/bv_r38p1/Makefile 2>/dev/null || true
