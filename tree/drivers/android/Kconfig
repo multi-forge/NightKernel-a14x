@@ -67,7 +67,8 @@ config ANDROID_DEBUG_SYMBOLS
 
 config ANDROID_VENDOR_HOOKS
 	bool "Android Vendor Hooks"
-	depends on TRACEPOINTS
+	select TRACING
+	select TRACEPOINTS
 	help
 	  Enable vendor hooks implemented as tracepoints
 
