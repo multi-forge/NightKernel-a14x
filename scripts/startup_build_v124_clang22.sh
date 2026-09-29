@@ -88,8 +88,12 @@ cd /build/repo/tree
 
 # 5b. Ensure ReSukiSU is present in tree
 if [ ! -d "KernelSU/kernel" ]; then
-    echo "=== SETTING UP RESUKISU ==="
-    curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash -s main
+    echo "=== CLONING RESUKISU ==="
+    rm -rf KernelSU drivers/kernelsu
+    git clone --depth 1 -b main https://github.com/ReSukiSU/ReSukiSU.git KernelSU
+    ln -sf ../KernelSU/kernel drivers/kernelsu
+    # Garantir que /build/repo continue na branch experimental
+    cd /build/repo && git checkout -f experimental && cd /build/repo/tree
 fi
 
 # 6. Apply fixes directly
