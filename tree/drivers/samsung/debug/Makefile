@@ -7,7 +7,7 @@ obj-$(CONFIG_SEC_DEBUG_BASE)		+= sec_debug.o
 sec_debug-y				+= sec_debug_base.o
 sec_debug-y				+= sec_dump_sink.o
 obj-$(CONFIG_SEC_DEBUG_BASE)		+= sec_debug_base_early.o
-obj-$(CONFIG_SEC_DEBUG_BASE)		+= sec_debug_test.o
+# obj-$(CONFIG_SEC_DEBUG_BASE) += sec_debug_test.o
 obj-$(CONFIG_SEC_DEBUG_BASE)		+= sec_debug_dprm.o
 obj-$(CONFIG_SEC_DEBUG_BASE)		+= sec_debug_dprt.o
 
