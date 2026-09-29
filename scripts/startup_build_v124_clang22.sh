@@ -86,14 +86,20 @@ git checkout experimental
 # Kernel tree is inside /build/repo/tree
 cd /build/repo/tree
 
-# 5b. Ensure ReSukiSU is present in tree
+# 5b. Ensure external submodules (ReSukiSU & Baseband-guard) are present in tree
 if [ ! -d "KernelSU/kernel" ]; then
     echo "=== CLONING RESUKISU ==="
     rm -rf KernelSU drivers/kernelsu
     git clone --depth 1 -b main https://github.com/ReSukiSU/ReSukiSU.git KernelSU
     ln -sf ../KernelSU/kernel drivers/kernelsu
-    # Garantir que /build/repo continue na branch experimental
     cd /build/repo && git checkout -f experimental && cd /build/repo/tree
+fi
+
+if [ ! -f "security/baseband-guard/Kconfig" ]; then
+    echo "=== CLONING BASEBAND-GUARD ==="
+    rm -rf Baseband-guard security/baseband-guard
+    git clone --depth 1 -b main https://github.com/vc-teahouse/Baseband-guard.git Baseband-guard
+    ln -sf ../Baseband-guard security/baseband-guard
 fi
 
 # 6. Apply fixes directly
