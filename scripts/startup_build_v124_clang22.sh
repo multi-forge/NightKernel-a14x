@@ -25,9 +25,9 @@ mkdir -p /build
 mount -t tmpfs -o size=24G tmpfs /build
 df -h /build
 
-mkdir -p /build/toolchains /build/kernel /build/patches /build/ccache-bin /build/artifacts /build/anykernel3 /build/boot_work
+mkdir -p /build/toolchains /build/ccache-bin /build/artifacts /build/anykernel3 /build/boot_work
 
-# 2. Attach and mount persistent ccache disk (reutiliza cache pré-aquecido das builds anteriores)
+# 2. Attach and mount persistent ccache disk
 echo "=== MOUNTING PERSISTENT CCACHE DISK ==="
 if grep -q " /mnt/ccache " /proc/mounts; then umount /mnt/ccache || true; fi
 mkdir -p /mnt/ccache
@@ -74,15 +74,19 @@ ln -sf "$(which ccache)" /build/ccache-bin/aarch64-linux-gnu-g++
 # 4. Clone AOSP Prebuilt Build Tools
 git clone --depth=1 -b main https://android.googlesource.com/kernel/prebuilts/build-tools /build/toolchains/build-tools
 
-# 5. Clone Kernel Source from experimental branch
-cd /build/kernel
+# 5. Clone NightKernel repo (experimental branch)
+echo "=== CLONING NIGHTKERNEL EXPERIMENTAL BRANCH ==="
+mkdir -p /build/repo
+cd /build/repo
 git init
 git remote add origin https://github.com/multi-forge/NightKernel-a14x.git
 git fetch --depth 1 origin experimental
 git checkout experimental
 
-# 6. Apply tree fixes
-cd /build/kernel
+# Kernel tree is inside /build/repo/tree
+cd /build/repo/tree
+
+# 6. Apply fixes directly
 sed -i 's/-Werror=/-W/g; s/KBUILD_CFLAGS-$(CONFIG_WERROR) += -Werror//g' Makefile
 sed -i 's/KBUILD_CFLAGS += -Wall -Werror/KBUILD_CFLAGS += -Wall/' drivers/gpu/arm/v_r38p1/Makefile drivers/gpu/arm/bv_r38p1/Makefile 2>/dev/null || true
 
@@ -99,7 +103,7 @@ export ANDROID_MAJOR_VERSION=v
 export KCFLAGS="-Wno-error"
 
 # 8. Apply v1.2.4 defconfig
-cp configs/nightkernel_v1.2.4_clang22_defconfig .config
+cp /build/repo/configs/nightkernel_v1.2.4_clang22_defconfig .config
 make olddefconfig
 
 # Validate critical flags
