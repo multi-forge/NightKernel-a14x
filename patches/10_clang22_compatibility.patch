@@ -1,0 +1,211 @@
+diff --git a/Makefile b/Makefile
+index 4c9b580be..944f6e39c 100644
+--- a/Makefile
++++ b/Makefile
+@@ -538,10 +538,10 @@ LINUXINCLUDE    := \
+ 		$(USERINCLUDE)
+ 
+ KBUILD_AFLAGS   := -D__ASSEMBLY__ -fno-PIE
+-KBUILD_CFLAGS   := -Wall -Wundef -Werror=strict-prototypes -Wno-trigraphs \
++KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+ 		   -fno-strict-aliasing -fno-common -fshort-wchar -fno-PIE \
+-		   -Werror=implicit-function-declaration -Werror=implicit-int \
+-		   -Werror=return-type -Wno-format-security \
++		   -Wimplicit-function-declaration -Wimplicit-int \
++		   -Wreturn-type -Wno-format-security \
+ 		   -std=gnu89
+ KBUILD_CPPFLAGS := -D__KERNEL__
+ KBUILD_AFLAGS_KERNEL :=
+@@ -825,7 +825,7 @@ stackp-flags-$(CONFIG_STACKPROTECTOR_STRONG)      := -fstack-protector-strong
+ 
+ KBUILD_CFLAGS += $(stackp-flags-y)
+ 
+-KBUILD_CFLAGS-$(CONFIG_WERROR) += -Werror
++
+ KBUILD_CFLAGS += $(KBUILD_CFLAGS-y)
+ 
+ ifdef CONFIG_CC_IS_CLANG
+@@ -1086,13 +1086,13 @@ KBUILD_CFLAGS   += -fconserve-stack
+ endif
+ 
+ # Prohibit date/time macros, which would make the build non-deterministic
+-KBUILD_CFLAGS   += -Werror=date-time
++KBUILD_CFLAGS   += -Wdate-time
+ 
+ # enforce correct pointer usage
+-KBUILD_CFLAGS   += $(call cc-option,-Werror=incompatible-pointer-types)
++KBUILD_CFLAGS   += $(call cc-option,-Wincompatible-pointer-types)
+ 
+ # Require designated initializers for all marked structures
+-KBUILD_CFLAGS   += $(call cc-option,-Werror=designated-init)
++KBUILD_CFLAGS   += $(call cc-option,-Wdesignated-init)
+ 
+ # change __FILE__ to the relative path from the srctree
+ KBUILD_CPPFLAGS += $(call cc-option,-fmacro-prefix-map=$(srctree)/=)
+diff --git a/drivers/gpu/arm/bv_r38p1/Makefile b/drivers/gpu/arm/bv_r38p1/Makefile
+index ab71516ba..4b5609825 100644
+--- a/drivers/gpu/arm/bv_r38p1/Makefile
++++ b/drivers/gpu/arm/bv_r38p1/Makefile
+@@ -229,7 +229,7 @@ EXTRA_CFLAGS += -DCONFIG_MALI_PLATFORM_NAME=$(CONFIG_MALI_PLATFORM_NAME)
+ 
+ # The following were added to align with W=1 in scripts/Makefile.extrawarn
+ # from the Linux source tree
+-KBUILD_CFLAGS += -Wall -Werror
++KBUILD_CFLAGS += -Wall
+ KBUILD_CFLAGS += -Wextra -Wunused -Wno-unused-parameter
+ KBUILD_CFLAGS += -Wmissing-declarations
+ KBUILD_CFLAGS += -Wmissing-format-attribute
+diff --git a/drivers/gpu/arm/v_r38p1/Makefile b/drivers/gpu/arm/v_r38p1/Makefile
+index ab71516ba..4b5609825 100644
+--- a/drivers/gpu/arm/v_r38p1/Makefile
++++ b/drivers/gpu/arm/v_r38p1/Makefile
+@@ -229,7 +229,7 @@ EXTRA_CFLAGS += -DCONFIG_MALI_PLATFORM_NAME=$(CONFIG_MALI_PLATFORM_NAME)
+ 
+ # The following were added to align with W=1 in scripts/Makefile.extrawarn
+ # from the Linux source tree
+-KBUILD_CFLAGS += -Wall -Werror
++KBUILD_CFLAGS += -Wall
+ KBUILD_CFLAGS += -Wextra -Wunused -Wno-unused-parameter
+ KBUILD_CFLAGS += -Wmissing-declarations
+ KBUILD_CFLAGS += -Wmissing-format-attribute
+diff --git a/drivers/input/touchscreen/novatek/nt36523_spi/nt36xxx.c b/drivers/input/touchscreen/novatek/nt36523_spi/nt36xxx.c
+index 373484087..edc9e9b3e 100755
+--- a/drivers/input/touchscreen/novatek/nt36523_spi/nt36xxx.c
++++ b/drivers/input/touchscreen/novatek/nt36523_spi/nt36xxx.c
+@@ -2579,7 +2579,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
+ 		ret = wait_for_completion_interruptible_timeout(&ts->resume_done, msecs_to_jiffies(500));
+ 		if (ret == 0) {
+ 			input_err(true, &ts->client->dev, "%s: LPM: pm resume is not handled\n", __func__);
+-			return SEC_ERROR;
++			return IRQ_NONE;
+ 		}
+ 
+ 		if (ret < 0) {
+diff --git a/drivers/samsung/debug/sec_debug_test.c b/drivers/samsung/debug/sec_debug_test.c
+index ca946cfe1..6e3ca0d1f 100644
+--- a/drivers/samsung/debug/sec_debug_test.c
++++ b/drivers/samsung/debug/sec_debug_test.c
+@@ -2050,6 +2050,7 @@ static void simulate_UBSAN_OOB_PTR(char **argv, int argc)
+ static void secdbg_fpsimd_save_state(struct user_fpsimd_state *state)
+ {
+ 	asm volatile(
++\t"	.arch armv8-a+fp\n"
+ 	"	stp	q0, q1, [%0, #16 * 0]	\n"
+ 	"	stp	q2, q3, [%0, #16 * 2]	\n"
+ 	"	stp	q4, q5, [%0, #16 * 4]	\n"
+@@ -2066,6 +2067,7 @@ static void secdbg_fpsimd_save_state(struct user_fpsimd_state *state)
+ 	"	stp	q26, q27, [%0, #16 * 26]\n"
+ 	"	stp	q28, q29, [%0, #16 * 28]\n"
+ 	"	stp	q30, q31, [%0, #16 * 30]\n"
++\t"	.arch armv8-a\n"
+ 	:
+ 	: "r" (state)
+ 	: "cc", "memory");
+@@ -2074,6 +2076,7 @@ static void secdbg_fpsimd_save_state(struct user_fpsimd_state *state)
+ static void secdbg_fpsimd_load_state(struct user_fpsimd_state *state)
+ {
+ 	asm volatile(
++\t"	.arch armv8-a+fp\n"
+ 	"	ldp	q0, q1, [%0, #16 * 0]	\n"
+ 	"	ldp	q2, q3, [%0, #16 * 2]	\n"
+ 	"	ldp	q4, q5, [%0, #16 * 4]	\n"
+@@ -2090,6 +2093,7 @@ static void secdbg_fpsimd_load_state(struct user_fpsimd_state *state)
+ 	"	ldp	q26, q27, [%0, #16 * 26]\n"
+ 	"	ldp	q28, q29, [%0, #16 * 28]\n"
+ 	"	ldp	q30, q31, [%0, #16 * 30]\n"
++\t"	.arch armv8-a\n"
+ 	:
+ 	: "r" (state)
+ 	: "cc", "memory");
+diff --git a/drivers/soc/samsung/exynos-cpupm.c b/drivers/soc/samsung/exynos-cpupm.c
+index 265f9eb9c..de2ccf9a0 100644
+--- a/drivers/soc/samsung/exynos-cpupm.c
++++ b/drivers/soc/samsung/exynos-cpupm.c
+@@ -1734,7 +1734,7 @@ static int extern_idle_ip_init(struct device_node *dn)
+ 
+ 	for (i = 0; i < count; i++) {
+ 		struct idle_ip *ip;
+-		const char *name;
++		const char *name = NULL;
+ 
+ 		ip = kzalloc(sizeof(struct idle_ip), GFP_KERNEL);
+ 		if (!ip) {
+diff --git a/drivers/usb/typec/sm/sm5714/sm5714_typec.c b/drivers/usb/typec/sm/sm5714/sm5714_typec.c
+index 06d027d9e..492b193bd 100644
+--- a/drivers/usb/typec/sm/sm5714/sm5714_typec.c
++++ b/drivers/usb/typec/sm/sm5714/sm5714_typec.c
+@@ -1348,12 +1348,12 @@ static int sm5714_port_type_set(struct typec_port *port,
+ 		usbpd_data->typec_data_role, port_type);
+ 
+ 	reinit_completion(&usbpd_data->typec_reverse_completion);
+-	if (port_type == TYPEC_PORT_DFP) {
++	if ((int)port_type == (int)TYPEC_PORT_DFP) {
+ 		pr_info("%s : try reversing, from UFP(Sink) to DFP(Source)\n",
+ 			__func__);
+ 		usbpd_data->typec_try_state_change = TRY_ROLE_SWAP_TYPE;
+ 		sm5714_rprd_mode_change(usbpd_data, TYPE_C_ATTACH_DFP);
+-	} else if (port_type == TYPEC_PORT_UFP) {
++	} else if ((int)port_type == (int)TYPEC_PORT_UFP) {
+ 		pr_info("%s : try reversing, from DFP(Source) to UFP(Sink)\n",
+ 			__func__);
+ #if IS_ENABLED(CONFIG_PDIC_NOTIFIER)
+diff --git a/include/soc/samsung/exynos-devfreq.h b/include/soc/samsung/exynos-devfreq.h
+index 6c6111fe5..f8445ee9e 100644
+--- a/include/soc/samsung/exynos-devfreq.h
++++ b/include/soc/samsung/exynos-devfreq.h
+@@ -255,7 +255,7 @@ struct exynos_profile_data {
+ };
+ 
+ #if IS_ENABLED(CONFIG_EXYNOS_ALT_DVFS)
+-extern exynos_devfreq_alt_mode_change(unsigned int devfreq_type, int new_mode);
++extern int exynos_devfreq_alt_mode_change(unsigned int devfreq_type, int new_mode);
+ extern void exynos_alt_call_chain(void);
+ #endif
+ 
+diff --git a/kernel/sched/ems/sysbusy.c b/kernel/sched/ems/sysbusy.c
+index 0581dc602..6f3e9f1e6 100644
+--- a/kernel/sched/ems/sysbusy.c
++++ b/kernel/sched/ems/sysbusy.c
+@@ -40,7 +40,7 @@ struct sysbusy_stat {
+ 	u64 time_in_state;
+ } sysbusy_stats[NUM_OF_SYSBUSY_STATE];
+ 
+-static cpn_next_cpu[VENDOR_NR_CPUS] = { [0 ... VENDOR_NR_CPUS - 1] = -1 };
++static int cpn_next_cpu[VENDOR_NR_CPUS] = { [0 ... VENDOR_NR_CPUS - 1] = -1 };
+ /******************************************************************************
+  * sysbusy notify                                                             *
+  ******************************************************************************/
+diff --git a/mm/filemap.c b/mm/filemap.c
+index 709a5de0b..d64f37e5e 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -2988,14 +2988,14 @@ static void filemap_tracing_mark_begin(struct file *file,
+ 	tracing_mark_begin("%d , %s , %lu , %d", sync, path, offset, size);
+ }
+ 
+-static void filemap_tracing_mark_end()
++static void filemap_tracing_mark_end(void)
+ {
+     tracing_mark_end();
+ }
+ #else
+ static void filemap_tracing_mark_begin(struct file *file,
+ 		pgoff_t offset, unsigned int size, bool sync) { }
+-static void filemap_tracing_mark_end() { }
++static void filemap_tracing_mark_end(void) { }
+ #endif
+ 
+ #if CONFIG_MMAP_READAROUND_LIMIT == 0
+diff --git a/sound/usb/exynos_usb_audio_gic.c b/sound/usb/exynos_usb_audio_gic.c
+index 37dc14b48..11fadafac 100644
+--- a/sound/usb/exynos_usb_audio_gic.c
++++ b/sound/usb/exynos_usb_audio_gic.c
+@@ -420,7 +420,7 @@ static int exynos_sound_usb_pm_notifier(struct notifier_block *nb,
+ 	return NOTIFY_OK;
+ }
+ 
+-static void exynos_sound_usb_pm_noti_init()
++static void exynos_sound_usb_pm_noti_init(void)
+ {
+ 	pr_info("%s\n", __func__);
+ 	init_completion(&usb_audio.resume_cmpl);

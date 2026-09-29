@@ -71,15 +71,15 @@ Samsung's stock bootloader (`sboot`) on Exynos 1330 enforces restrictions when h
 ## Installation
 
 ### 1. TWRP Recovery (Recommended)
-1. Download `NightKernel-v1.2.2-a14x.zip` from [Releases](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.2.2).
+1. Download `NightKernel-v1.2.3-clang22-a14x.zip` from [Releases](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.2.3-clang22).
 2. Boot into TWRP.
 3. *Note:* Because Android 15 `/data` is encrypted with FBE, place the zip on a **MicroSD card**, **USB OTG drive**, or in `/cache/` (unencrypted ext4 partition).
 4. Flash the zip and reboot system.
 
 ### 2. Odin / Download Mode
-1. Download `boot-NightKernel-v1.2.2.tar` from [Releases](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.2.2).
+1. Download `boot-NightKernel-v1.2.3-clang22.tar` from [Releases](https://github.com/multi-forge/NightKernel-a14x/releases/tag/v1.2.3-clang22).
 2. Boot into Download Mode (`Vol+ + Vol-` with USB cable connected to PC).
-3. Place `boot-NightKernel-v1.2.2.tar` in the **AP** slot in Odin.
+3. Place `boot-NightKernel-v1.2.3-clang22.tar` in the **AP** slot in Odin.
 4. Flash and reboot.
 
 ### 3. Root Terminal
@@ -93,7 +93,7 @@ dd if=boot.img of=/dev/block/by-name/boot bs=4096 && sync && reboot
 
 ### Prerequisites
 - Linux build environment (Ubuntu 22.04 or 24.04 LTS recommended)
-- AOSP Clang 14 (r450784d) or Clang 18 (r522817)
+- Clang 22 (LLVM 22.1.8) recommended or AOSP Clang
 - AArch64 GCC / LLVM binutils
 
 ### Build Commands
@@ -106,7 +106,7 @@ export CLANG_TRIPLE=aarch64-linux-gnu-
 export PATH=/path/to/clang/bin:$PATH
 
 # Load defconfig
-make CC=clang LLVM=1 nightkernel_v1.2.2_defconfig
+make CC=clang LLVM=1 nightkernel_v1.2.3_clang22_defconfig
 
 # Compile kernel Image
 make -j$(nproc) CC=clang LLVM=1 Image
@@ -118,7 +118,7 @@ Output binary will be located at `arch/arm64/boot/Image`.
 ## Source Tree Structure
 - [`tree/`](tree/): Full kernel source tree with all patches applied.
 - [`tree-recovery/`](tree-recovery/): TWRP device tree for Galaxy A14 5G.
-- [`configs/`](configs/): Production kernel defconfig (`nightkernel_v1.2.2_defconfig`).
+- [`configs/`](configs/): Production kernel defconfigs (`nightkernel_v1.2.3_clang22_defconfig`).
 - [`patches/`](patches/): Modular patch files for each individual feature.
 
 ## Related Links
