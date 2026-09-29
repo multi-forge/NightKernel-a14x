@@ -33,15 +33,20 @@ if grep -q " /mnt/ccache " /proc/mounts; then umount /mnt/ccache || true; fi
 mkdir -p /mnt/ccache
 if [ -e /dev/disk/by-id/google-a14x-ccache ]; then
     mount -o discard,defaults /dev/disk/by-id/google-a14x-ccache /mnt/ccache || true
+    resize2fs /dev/disk/by-id/google-a14x-ccache 2>/dev/null || true
     mkdir -p /mnt/ccache/nightkernel-ccache
     export CCACHE_DIR=/mnt/ccache/nightkernel-ccache
 fi
 
-export CCACHE_MAXSIZE=14G
+# Manter arquivos temporarios no tmpfs de 24GB para evitar I/O bottleneck e falta de espaco
+mkdir -p /build/ccache-tmp
+export CCACHE_TEMPDIR=/build/ccache-tmp
+
+export CCACHE_MAXSIZE=30G
 export CCACHE_COMPRESS=1
 export CCACHE_COMPRESSLEVEL=1
 export USE_CCACHE=1
-which ccache && ccache -M 14G && ccache -s
+which ccache && ccache -M 30G && ccache -c && ccache -s
 
 # 3. Base Packages & Clang 22 Setup
 export DEBIAN_FRONTEND=noninteractive
