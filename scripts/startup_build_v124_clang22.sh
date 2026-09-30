@@ -167,7 +167,7 @@ cat << 'AK3EOF' > /build/anykernel3/anykernel.sh
 ## osm0sis @ xda-developers
 
 properties() { '
-kernel.string=NightKernel v1.2.4-clang22 (Linux 5.15.221 / Clang 22 / ThinLTO / UFS mq-deadline) by Multi-Forge
+kernel.string=NightKernel v1.2.4-p1 (Linux 5.15.221 / Clang 22 / ThinLTO / UFS mq-deadline) by Multi-Forge
 do.devicecheck=1
 do.modules=0
 do.systemless=1
