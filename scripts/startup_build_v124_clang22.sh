@@ -2,7 +2,7 @@
 set -x
 exec > >(tee -a /var/log/kernel-build.log) 2>&1
 
-CODENAME="NightKernel-v1.2.4-clang22"
+CODENAME="NightKernel-v1.2.4-p2"
 GCS_BASE="gs://laya-onnx-stt-465818/nightkernel-v123-clang22"
 
 echo "=== STARTING ${CODENAME} BUILD (Linux 5.15.221 / Clang 22 / ThinLTO / UFS mq-deadline / NO-FTRACE) $(date) ==="
@@ -121,7 +121,7 @@ export TARGET_SOC=s5e8535
 export DTC_FLAGS="-@"
 export PLATFORM_VERSION=15
 export ANDROID_MAJOR_VERSION=v
-export KCFLAGS="-Wno-error"
+export KCFLAGS="-march=armv8.2-a+crypto+dotprod+fp16+rcpc -fprofile-sample-use=/build/repo/tree/arch/arm64/configs/kernel.afdo -Wno-error"
 
 # 8. Apply v1.2.4 defconfig
 cp /build/repo/configs/nightkernel_v1.2.4_clang22_defconfig .config
@@ -134,7 +134,7 @@ grep "CONFIG_NTSYNC=y" .config
 grep "CONFIG_LTO_CLANG_THIN=y" .config
 grep "CONFIG_ZRAM_DEF_COMP_LZ4=y" .config
 grep "CONFIG_DEFAULT_MQ_DEADLINE=y" .config
-grep 'CONFIG_LOCALVERSION="-NightKernel-v1.2.4-p1"' .config
+grep 'CONFIG_LOCALVERSION="-NightKernel-v1.2.4-p2"' .config
 
 # 9. Dynamic Parallelism Calculation & Compile
 CPUS=$(nproc)
@@ -167,7 +167,7 @@ cat << 'AK3EOF' > /build/anykernel3/anykernel.sh
 ## osm0sis @ xda-developers
 
 properties() { '
-kernel.string=NightKernel v1.2.4-p1 (Linux 5.15.221 / Clang 22 / ThinLTO / UFS mq-deadline) by Multi-Forge
+kernel.string=NightKernel v1.2.4-p2 (Linux 5.15.221 / Clang 22 / AutoFDO / PELT 16ms / ThinLTO / UFS mq-deadline) by Multi-Forge
 do.devicecheck=1
 do.modules=0
 do.systemless=1
