@@ -134,7 +134,7 @@ grep "CONFIG_NTSYNC=y" .config
 grep "CONFIG_LTO_CLANG_THIN=y" .config
 grep "CONFIG_ZRAM_DEF_COMP_LZ4=y" .config
 grep "CONFIG_DEFAULT_MQ_DEADLINE=y" .config
-grep 'CONFIG_LOCALVERSION="-NightKernel-v1.2.4-clang22"' .config
+grep 'CONFIG_LOCALVERSION="-NightKernel-v1.2.4-p1"' .config
 
 # 9. Dynamic Parallelism Calculation & Compile
 CPUS=$(nproc)
@@ -207,13 +207,13 @@ if [ -f boot.img ]; then
         cp /build/artifacts/Image kernel
         /build/anykernel3/tools/magiskboot repack boot.img /build/artifacts/boot.img || true
         if [ -f /build/artifacts/boot.img ]; then
-            tar -cvf /build/artifacts/boot-NightKernel-v1.2.4-clang22.tar -C /build/artifacts boot.img
+            tar -cvf /build/artifacts/boot-NightKernel-v1.2.4-p1.tar -C /build/artifacts boot.img
         fi
     fi
 fi
 
 cd /build/artifacts
-sha256sum Image nightkernel-v1.2.4-clang22.config NightKernel-v1.2.4-clang22-a14x.zip boot.img boot-NightKernel-v1.2.4-clang22.tar > sha256sums.txt
+sha256sum Image nightkernel-v1.2.4-clang22.config NightKernel-v1.2.4-clang22-a14x.zip boot.img boot-NightKernel-v1.2.4-p1.tar > sha256sums.txt
 
 echo "=== UPLOADING ARTIFACTS TO GCS ==="
 gcloud storage cp -r /build/artifacts/* "${GCS_BASE}/artifacts-v124/"
