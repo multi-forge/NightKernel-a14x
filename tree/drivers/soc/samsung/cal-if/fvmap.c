@@ -518,6 +518,24 @@ int fvmap_init(void __iomem *sram_base)
 	if (sysfs_create_group(kobj, &asv_g_spec_grp))
 		pr_err("Fail to create asv_g_spec group\n");
 
+	/* NightKernel Phase 3: Safe -2% default undervolt for Exynos 1330 silicon */
+	{
+		int vid;
+		percent_margin_table[MARGIN_CPUCL1] = -2;
+		percent_margin_table[MARGIN_CPUCL0] = -2;
+		percent_margin_table[MARGIN_G3D] = -2;
+		vid = get_vclk_id_from_margin_id(MARGIN_CPUCL1);
+		if (vid >= 0)
+			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, -2);
+		vid = get_vclk_id_from_margin_id(MARGIN_CPUCL0);
+		if (vid >= 0)
+			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, -2);
+		vid = get_vclk_id_from_margin_id(MARGIN_G3D);
+		if (vid >= 0)
+			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, -2);
+		pr_info("NightKernel: Phase 3 undervolt applied (-2%% on CPU Big/Little & GPU)\n");
+	}
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(fvmap_init);
