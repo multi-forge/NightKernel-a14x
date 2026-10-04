@@ -1,0 +1,9 @@
+menu "KernelSU"
+
+config KSU
+	bool "KernelSU function support"
+	default y
+	help
+	  Enable kernel-level root support.
+
+endmenu
