@@ -85,8 +85,8 @@ mkdir -p /build/repo
 cd /build/repo
 git init
 git remote add origin https://github.com/multi-forge/NightKernel-a14x.git
-git fetch --depth 1 origin experimental
-git checkout experimental
+git fetch --depth 1 origin stable
+git checkout stable
 
 # Kernel tree is inside /build/repo/tree
 cd /build/repo/tree
@@ -196,24 +196,27 @@ AK3EOF
 
 cd /build/anykernel3 && zip -r9 /build/artifacts/NightKernel-v1.2.4-clang22-a14x.zip * -x .git README.md *placeholder
 
-# 11. Create repacked boot.img and Odin tar from Binary E base
-mkdir -p /build/boot_work && cd /build/boot_work
-gcloud storage cp "${GCS_BASE}/A146b-V-ue-boot.tar" .
-tar -xvf A146b-V-ue-boot.tar
+# 11. Create native Header Version 4 boot.img and Odin tar for Samsung Binary E
+echo "=== CREATING NATIVE HEADER v4 BOOT.IMG ==="
+MKBOOTIMG=$(find /build/toolchains -name "mkbootimg" -o -name "mkbootimg.py" 2>/dev/null | head -n 1)
+if [ -z "$MKBOOTIMG" ]; then
+    curl -sSL https://raw.githubusercontent.com/LineageOS/android_system_tools_mkbootimg/lineage-22.1/mkbootimg.py -o /build/mkbootimg.py
+    MKBOOTIMG="/build/mkbootimg.py"
+fi
 
-if [ -f boot.img ]; then
-    /build/anykernel3/tools/magiskboot unpack boot.img || true
-    if [ -f kernel ]; then
-        cp /build/artifacts/Image kernel
-        /build/anykernel3/tools/magiskboot repack boot.img /build/artifacts/boot.img || true
-        if [ -f /build/artifacts/boot.img ]; then
-            tar -cvf /build/artifacts/boot-NightKernel-v1.2.4-p1.tar -C /build/artifacts boot.img
-        fi
-    fi
+python3 "$MKBOOTIMG" \
+    --kernel /build/artifacts/Image \
+    --header_version 4 \
+    --os_version 15.0.0 \
+    --os_patch_level 2026-09 \
+    --output /build/artifacts/boot.img
+
+if [ -f /build/artifacts/boot.img ]; then
+    tar -cvf /build/artifacts/boot-NightKernel-v2.0.0-a146b-binaryE.tar -C /build/artifacts boot.img
 fi
 
 cd /build/artifacts
-sha256sum Image nightkernel-v1.2.4-clang22.config NightKernel-v1.2.4-clang22-a14x.zip boot.img boot-NightKernel-v1.2.4-p1.tar > sha256sums.txt
+sha256sum Image *.config *.zip boot.img *.tar > sha256sums.txt 2>/dev/null || true
 
 echo "=== UPLOADING ARTIFACTS TO GCS ==="
 gcloud storage cp -r /build/artifacts/* "${GCS_BASE}/artifacts-v124/"

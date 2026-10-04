@@ -518,22 +518,22 @@ int fvmap_init(void __iomem *sram_base)
 	if (sysfs_create_group(kobj, &asv_g_spec_grp))
 		pr_err("Fail to create asv_g_spec group\n");
 
-	/* NightKernel Phase 3: Safe -2% default undervolt for Exynos 1330 silicon */
+	/* NightKernel: Default to safe stock voltage margin (0%) at boot for universal Binary E compatibility */
 	{
 		int vid;
-		percent_margin_table[MARGIN_CPUCL1] = -2;
-		percent_margin_table[MARGIN_CPUCL0] = -2;
-		percent_margin_table[MARGIN_G3D] = -2;
+		percent_margin_table[MARGIN_CPUCL1] = 0;
+		percent_margin_table[MARGIN_CPUCL0] = 0;
+		percent_margin_table[MARGIN_G3D] = 0;
 		vid = get_vclk_id_from_margin_id(MARGIN_CPUCL1);
 		if (vid >= 0)
-			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, -2);
+			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, 0);
 		vid = get_vclk_id_from_margin_id(MARGIN_CPUCL0);
 		if (vid >= 0)
-			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, -2);
+			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, 0);
 		vid = get_vclk_id_from_margin_id(MARGIN_G3D);
 		if (vid >= 0)
-			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, -2);
-		pr_info("NightKernel: Phase 3 undervolt applied (-2%% on CPU Big/Little & GPU)\n");
+			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, 0);
+		pr_info("NightKernel: Voltage margins initialized to stock 0%% for universal A146B Binary E compatibility\n");
 	}
 
 	return 0;
