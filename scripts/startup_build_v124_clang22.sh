@@ -97,9 +97,8 @@ if [ ! -d "KernelSU/kernel" ]; then
     rm -rf KernelSU drivers/kernelsu
     git clone --depth 1 -b main https://github.com/ReSukiSU/ReSukiSU.git KernelSU
     ln -sf ../KernelSU/kernel drivers/kernelsu
-    cd /build/repo && git checkout -f experimental && cd /build/repo/tree
 fi
-
+cd /build/repo/tree
 if [ ! -f "security/baseband-guard/Kconfig" ]; then
     echo "=== CLONING BASEBAND-GUARD ==="
     rm -rf Baseband-guard security/baseband-guard
