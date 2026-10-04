@@ -1,0 +1,9 @@
+menu "Baseband Guard"
+
+config BASEBAND_GUARD
+	bool "Baseband Guard support"
+	default y
+	help
+	  Protection mechanisms for baseband interface.
+
+endmenu
