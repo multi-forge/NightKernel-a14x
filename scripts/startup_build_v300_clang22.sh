@@ -59,11 +59,18 @@ for tool in clang clang++ clang-22 clang++-22 aarch64-linux-gnu-gcc aarch64-linu
 done
 
 # 4. Install Clang 22 & Build Tools
-echo "=== INSTALLING CLANG 22 TOOLCHAIN ==="
-apt-get update
-apt-get install -y lsb-release wget software-properties-common gnupg curl git make bc bison flex \
-    libssl-dev libelf-dev python3 python3-pip zip unzip tar cpio xz-utils jq libncurses-dev \
-    qemu-system-arm qemu-efi-aarch64
+echo "=== INSTALLING CLANG 22 TOOLCHAIN & DEPENDENCIES ==="
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y
+for i in 1 2 3; do apt-get install -y software-properties-common wget gnupg && break; sleep 5; done
+add-apt-repository -y universe
+apt-get update -y
+for i in 1 2 3; do apt-get install -y git curl tar bc bison flex libssl-dev make gcc g++ libelf-dev \
+    python3 python3-pip libncurses-dev zip unzip zstd ccache dwarves patch rsync pigz \
+    cpio xz-utils jq qemu-system-arm qemu-efi-aarch64 && break; sleep 5; done || true
+
+which pahole || true
+pahole --version || true
 
 wget -O /tmp/llvm.sh https://apt.llvm.org/llvm.sh
 chmod +x /tmp/llvm.sh
@@ -143,6 +150,12 @@ scripts/config --enable CONFIG_MQ_IOSCHED_DEADLINE
 scripts/config --enable CONFIG_MODULES
 scripts/config --enable CONFIG_KPROBES
 scripts/config --enable CONFIG_DEBUG_FS
+scripts/config --enable CONFIG_CPU_IDLE_GOV_TEO
+
+if ! which pahole >/dev/null 2>&1; then
+    echo "Warning: pahole not found, disabling CONFIG_DEBUG_INFO_BTF"
+    scripts/config --disable CONFIG_DEBUG_INFO_BTF
+fi
 
 make olddefconfig
 
