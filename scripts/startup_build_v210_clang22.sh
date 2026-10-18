@@ -32,6 +32,9 @@ echo "=== MOUNTING PERSISTENT CCACHE DISK ==="
 if grep -q " /mnt/ccache " /proc/mounts; then umount /mnt/ccache || true; fi
 mkdir -p /mnt/ccache
 if [ -e /dev/disk/by-id/google-a14x-ccache ]; then
+    if ! blkid /dev/disk/by-id/google-a14x-ccache | grep -q ext4; then
+        mkfs.ext4 -F -m 0 /dev/disk/by-id/google-a14x-ccache
+    fi
     mount -o discard,defaults /dev/disk/by-id/google-a14x-ccache /mnt/ccache || true
     resize2fs /dev/disk/by-id/google-a14x-ccache 2>/dev/null || true
     mkdir -p /mnt/ccache/nightkernel-ccache
@@ -87,7 +90,7 @@ cd /build/repo/tree
 if [ ! -d "KernelSU/kernel" ]; then
     echo "=== CLONING RESUKISU ==="
     rm -rf KernelSU drivers/kernelsu
-    git clone --depth 1 -b main https://github.com/ReSukiSU/ReSukiSU.git KernelSU
+    git clone --depth 1 -b v4.2.0-rc3 https://github.com/ReSukiSU/ReSukiSU.git KernelSU
     ln -sf ../KernelSU/kernel drivers/kernelsu
 fi
 cd /build/repo/tree
