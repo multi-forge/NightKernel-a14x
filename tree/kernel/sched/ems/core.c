@@ -991,7 +991,7 @@ static bool is_boosted_task(struct task_struct *p)
 		return true;
 
 	if (emstune_support_uclamp()) {
-		if (uclamp_boosted(p) && !is_small_task(p))
+		if (uclamp_boosted(p) && (!is_small_task(p) || uclamp_latency_sensitive(p)))
 			return true;
 	}
 

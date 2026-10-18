@@ -962,6 +962,24 @@ static void try_wake_any_obj(struct ntsync_obj *obj)
 	}
 }
 
+/*
+ * NightKernel v3.0: Wine-NSPA Priority Inheritance Queue
+ * Sort waiters by thread scheduler priority (lower numerical value = higher priority)
+ * to ensure render threads and real-time gaming tasks are serviced first.
+ */
+static void ntsync_add_waiter_prio(struct list_head *head, struct ntsync_q_entry *new_entry)
+{
+	struct ntsync_q_entry *pos;
+
+	list_for_each_entry(pos, head, node) {
+		if (new_entry->q->task->prio < pos->q->task->prio) {
+			list_add_tail(&new_entry->node, &pos->node);
+			return;
+		}
+	}
+	list_add_tail(&new_entry->node, head);
+}
+
 static int ntsync_wait_any(struct ntsync_device *dev, void __user *argp)
 {
 	struct ntsync_wait_args args;
@@ -989,7 +1007,7 @@ static int ntsync_wait_any(struct ntsync_device *dev, void __user *argp)
 		struct ntsync_obj *obj = entry->obj;
 
 		all = ntsync_lock_obj(dev, obj);
-		list_add_tail(&entry->node, &obj->any_waiters);
+		ntsync_add_waiter_prio(&obj->any_waiters, entry);
 		ntsync_unlock_obj(dev, obj, all);
 	}
 
@@ -1083,7 +1101,7 @@ static int ntsync_wait_all(struct ntsync_device *dev, void __user *argp)
 		struct ntsync_obj *obj = entry->obj;
 
 		dev_lock_obj(dev, obj);
-		list_add_tail(&entry->node, &obj->any_waiters);
+		ntsync_add_waiter_prio(&obj->any_waiters, entry);
 		dev_unlock_obj(dev, obj);
 	}
 

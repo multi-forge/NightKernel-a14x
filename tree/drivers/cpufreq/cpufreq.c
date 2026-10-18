@@ -2998,6 +2998,12 @@ void nightkernel_set_display_state(bool on)
 		} else {
 			freq_qos_update_request(&big_cluster_display_qos, 1152000);
 		}
+
+		/* Hardware Pre-Wakeup Kick: trigger reschedule IPI to wake Big cores immediately */
+		if (cpu_online(6))
+			smp_send_reschedule(6);
+		if (cpu_online(7))
+			smp_send_reschedule(7);
 	} else {
 		/* Screen off / suspend: drop QoS to 0 so cluster can enter power collapse */
 		if (big_qos_added) {

@@ -1050,6 +1050,23 @@ static inline bool ems_task_fits_capacity(struct task_struct *p, unsigned long c
 
 static inline bool is_small_task(struct task_struct *p)
 {
+#ifdef CONFIG_UCLAMP_TASK_GROUP
+	/*
+	 * NightKernel v3.0: Bypass EMS hysteresis for latency-sensitive tasks.
+	 * If a task is marked latency-sensitive (e.g. top-app gaming thread,
+	 * RenderThread, UnityMain), it must NEVER be held back on Little cores.
+	 */
+	if (uclamp_latency_sensitive(p))
+		return false;
+#endif
+#ifdef CONFIG_UCLAMP_TASK
+	/*
+	 * If the task has an elevated uclamp.min reservation (>= 20),
+	 * it is explicitly requesting capacity - do not classify as small.
+	 */
+	if (uclamp_eff_value(p, UCLAMP_MIN) >= 20)
+		return false;
+#endif
 	unsigned long util = ml_task_util_est(p);
 	unsigned long threshold = 25; /* FIXME */
 
@@ -1075,7 +1092,7 @@ static inline bool ems_task_fits_max_cap(struct task_struct *p, int cpu)
 
 	if (capacity == slowest_capacity) {
 		task_boosted = is_boosted_tex_task(p) || sysbusy_boost_task(p)
-				|| (uclamp_boosted(p) && !is_small_task(p));
+				|| (uclamp_boosted(p) && (!is_small_task(p) || uclamp_latency_sensitive(p)));
 		if (task_boosted)
 			return false;
 	}

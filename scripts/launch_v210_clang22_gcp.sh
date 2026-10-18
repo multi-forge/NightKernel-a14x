@@ -18,7 +18,7 @@ gcloud compute instances create "$INSTANCE_NAME" \
   --zone="$ZONE" \
   --machine-type="n2-custom-10-40960" \
   --provisioning-model=SPOT \
-  --instance-termination-action=DELETE \
+  --instance-termination-action=STOP \
   --no-restart-on-failure \
   --image-family=ubuntu-2404-lts-amd64 \
   --image-project=ubuntu-os-cloud \
