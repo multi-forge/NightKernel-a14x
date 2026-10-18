@@ -92,7 +92,7 @@ enum {
 
 /* Default period for DVFS sampling (can be overridden by platform header) */
 #ifndef DEFAULT_PM_DVFS_PERIOD
-#define DEFAULT_PM_DVFS_PERIOD 100 /* 100ms */
+#define DEFAULT_PM_DVFS_PERIOD 10 /* 10ms - NightKernel sub-frame sampling */
 #endif
 
 /* Power Management poweroff tick granuality. This is in nanoseconds to

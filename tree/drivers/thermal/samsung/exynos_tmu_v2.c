@@ -759,7 +759,41 @@ static int exynos_get_temp(void *p, int *temp)
 
 	exynos_acpm_tmu_set_read_temp(data->id, &acpm_temp, &stat, acpm_data);
 
-	*temp = acpm_temp * MCELSIUS;
+	{
+		int raw_temp = acpm_temp * MCELSIUS;
+
+		/* NightKernel: 4-sample trimmed-mean filter to smooth transient shader compilation bursts */
+		if (unlikely(!data->temp_history_init)) {
+			int j;
+			for (j = 0; j < 4; j++)
+				data->temp_history[j] = raw_temp;
+			data->temp_history_idx = 0;
+			data->temp_history_init = true;
+			*temp = raw_temp;
+		} else if (raw_temp >= 100000) {
+			/* Emergency trip bypass: instantaneous hardware shutdown safety */
+			*temp = raw_temp;
+		} else {
+			int min_val, max_val, sum, j;
+
+			data->temp_history[data->temp_history_idx] = raw_temp;
+			data->temp_history_idx = (data->temp_history_idx + 1) % 4;
+
+			min_val = data->temp_history[0];
+			max_val = data->temp_history[0];
+			sum = data->temp_history[0];
+
+			for (j = 1; j < 4; j++) {
+				if (data->temp_history[j] < min_val)
+					min_val = data->temp_history[j];
+				if (data->temp_history[j] > max_val)
+					max_val = data->temp_history[j];
+				sum += data->temp_history[j];
+			}
+			/* Drop max and min, average middle 2 */
+			*temp = (sum - min_val - max_val) / 2;
+		}
+	}
 
 #if IS_ENABLED(CONFIG_EXYNOS_ESCA_THERMAL)
 #else

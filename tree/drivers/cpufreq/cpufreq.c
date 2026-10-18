@@ -2965,3 +2965,80 @@ static int __init cpufreq_core_init(void)
 module_param(off, int, 0444);
 module_param_string(default_governor, default_governor, CPUFREQ_NAME_LEN, 0444);
 core_initcall(cpufreq_core_init);
+
+/* NightKernel: Display-Aware PM Freq QoS for ARM DynamIQ Big Cluster & Pre-Wakeup Kick */
+static struct freq_qos_request big_cluster_display_qos;
+static bool big_qos_added;
+static bool nightkernel_screen_on = true;
+static DEFINE_MUTEX(nightkernel_qos_lock);
+
+void nightkernel_set_display_state(bool on)
+{
+	struct cpufreq_policy *policy;
+
+	mutex_lock(&nightkernel_qos_lock);
+	nightkernel_screen_on = on;
+
+	/* CPU 6 is the lead CPU of the Big cluster (Cortex-A78) */
+	policy = cpufreq_cpu_get(6);
+	if (!policy) {
+		mutex_unlock(&nightkernel_qos_lock);
+		return;
+	}
+
+	if (on) {
+		/* Pre-Wakeup Kick: wake Big cluster out of hercules-cpu-sl before render frame */
+		if (unlikely(!big_qos_added)) {
+			int ret = freq_qos_add_request(&policy->constraints,
+						       &big_cluster_display_qos,
+						       FREQ_QOS_MIN,
+						       1152000);
+			if (ret >= 0)
+				big_qos_added = true;
+		} else {
+			freq_qos_update_request(&big_cluster_display_qos, 1152000);
+		}
+	} else {
+		/* Screen off / suspend: drop QoS to 0 so cluster can enter power collapse */
+		if (big_qos_added) {
+			freq_qos_update_request(&big_cluster_display_qos,
+						FREQ_QOS_MIN_DEFAULT_VALUE);
+		}
+	}
+
+	cpufreq_cpu_put(policy);
+	mutex_unlock(&nightkernel_qos_lock);
+}
+EXPORT_SYMBOL_GPL(nightkernel_set_display_state);
+
+#if IS_ENABLED(CONFIG_DEBUG_FS)
+#include <linux/debugfs.h>
+
+static int nightkernel_sim_display_get(void *data, u64 *val)
+{
+	*val = nightkernel_screen_on ? 1 : 0;
+	return 0;
+}
+
+static int nightkernel_sim_display_set(void *data, u64 val)
+{
+	nightkernel_set_display_state(val ? true : false);
+	return 0;
+}
+
+DEFINE_SIMPLE_ATTRIBUTE(nightkernel_sim_display_fops,
+			nightkernel_sim_display_get,
+			nightkernel_sim_display_set,
+			"%llu\n");
+
+static int __init nightkernel_debugfs_init(void)
+{
+	struct dentry *dir = debugfs_create_dir("nightkernel", NULL);
+	if (dir)
+		debugfs_create_file("simulate_display", 0644, dir, NULL,
+				    &nightkernel_sim_display_fops);
+	return 0;
+}
+late_initcall(nightkernel_debugfs_init);
+#endif
+

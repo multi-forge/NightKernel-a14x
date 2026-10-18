@@ -99,7 +99,7 @@ if [ ! -d "KernelSU/kernel" ]; then
     ln -sf ../KernelSU/kernel drivers/kernelsu
 fi
 cd /build/repo/tree
-if [ ! -f "security/baseband-guard/Kconfig" ]; then
+if [ ! -d "Baseband-guard" ]; then
     echo "=== CLONING BASEBAND-GUARD ==="
     rm -rf Baseband-guard security/baseband-guard
     git clone --depth 1 -b main https://github.com/vc-teahouse/Baseband-guard.git Baseband-guard
@@ -166,7 +166,7 @@ cat << 'AK3EOF' > /build/anykernel3/anykernel.sh
 ## osm0sis @ xda-developers
 
 properties() { '
-kernel.string=NightKernel v2 (Linux 5.15.221 / Clang 22 / AutoFDO / PELT 16ms / 100% Kernel Integrated) by Multi-Forge by Multi-Forge
+kernel.string=NightKernel v2.1 (Linux 5.15.221 / Clang 22 / AutoFDO / Display-Aware QoS / Trimmed TMU) by Multi-Forge
 do.devicecheck=1
 do.modules=0
 do.systemless=1

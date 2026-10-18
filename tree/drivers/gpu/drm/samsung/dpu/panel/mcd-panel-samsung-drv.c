@@ -15,6 +15,7 @@
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>
+#include <linux/cpufreq.h>
 
 #include <drm/drm_panel.h>
 #include <drm/drm_encoder.h>
@@ -1145,6 +1146,7 @@ static int mcd_drm_panel_disable(struct drm_panel *panel)
 	}
 
 	ctx->enabled = false;
+	nightkernel_set_display_state(false);
 	dev_info(ctx->dev, "%s -\n", __func__);
 	return 0;
 }
@@ -1188,6 +1190,7 @@ static int mcd_drm_panel_enable(struct drm_panel *panel)
 		return ret;
 	}
 	ctx->enabled = true;
+	nightkernel_set_display_state(true);
 
 	funcs = ctx->desc->exynos_panel_func;
 	if (pmode->exynos_mode.is_lp_mode && funcs->set_lp_mode)

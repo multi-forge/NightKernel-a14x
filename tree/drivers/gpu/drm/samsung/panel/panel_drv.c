@@ -17,6 +17,7 @@
 #include <linux/irqreturn.h>
 #include <linux/of.h>
 #include <linux/of_irq.h>
+#include <linux/cpufreq.h>
 #include <linux/of_reserved_mem.h>
 #include <linux/slab.h>
 #include <linux/dma-buf.h>
@@ -1823,6 +1824,7 @@ int panel_display_on(struct panel_device *panel)
 	}
 	state->disp_on = PANEL_DISPLAY_ON;
 	panel->ktime_panel_disp_on = ktime_get();
+	nightkernel_set_display_state(true);
 
 #ifdef CONFIG_USDM_PANEL_SELF_DISPLAY
 	if (panel_get_cur_state(panel) == PANEL_STATE_ALPM) {
@@ -1876,6 +1878,7 @@ __visible_for_testing int panel_display_off(struct panel_device *panel)
 	if (unlikely(ret < 0))
 		panel_err("failed to write display off seqtbl\n");
 	state->disp_on = PANEL_DISPLAY_OFF;
+	nightkernel_set_display_state(false);
 
 	return 0;
 do_exit:
