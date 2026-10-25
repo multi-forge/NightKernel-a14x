@@ -72,7 +72,7 @@ log "[i] Safety Preserved: com.samsung.android.game.gametools"
 log "[*] Spawning autonomous SSHD watchdog daemon..."
 (
     while true; do
-        if ! pgrep -f "sshd" >/dev/null 2>&1; then
+        if ! pidof sshd >/dev/null 2>&1; then
             if [ -x "/data/data/com.termux/files/usr/bin/sshd" ]; then
                 su 10288 -c "PATH=/data/data/com.termux/files/usr/bin:$PATH HOME=/data/data/com.termux/files/home PREFIX=/data/data/com.termux/files/usr /data/data/com.termux/files/usr/bin/sshd -p 8022" >/dev/null 2>&1
             fi
