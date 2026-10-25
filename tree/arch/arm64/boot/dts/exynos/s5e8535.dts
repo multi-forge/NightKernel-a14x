@@ -675,14 +675,14 @@
 				};
 
 				big-switch-on {
-					temperature = <0x124f8>;
+					temperature = <0x14050>;
 					hysteresis = <0x7d0>;
 					type = "active";
 					phandle = <0x12d>;
 				};
 
 				big-control-temp {
-					temperature = <0x15f90>;
+					temperature = <0x17318>;
 					hysteresis = <0x1388>;
 					type = "passive";
 					phandle = <0x11>;
@@ -825,14 +825,14 @@
 				};
 
 				gpu-switch-on {
-					temperature = <0x11170>;
+					temperature = <0x12cf0>;
 					hysteresis = <0x7d0>;
 					type = "active";
 					phandle = <0x13d>;
 				};
 
 				gpu-control-temp {
-					temperature = <0x14c08>;
+					temperature = <0x16760>;
 					hysteresis = <0x1388>;
 					type = "passive";
 					phandle = <0x17>;

@@ -3112,6 +3112,11 @@ static int exynos_tmu_parse_ect(struct exynos_tmu_data *data)
 		parse_ect_get_boost_param(throttle_mode_control_temp, MCELSIUS);
 		parse_ect_get_boost_param(throttle_mode_switch_on, MCELSIUS);
 		parse_ect_get_boost_param(throttle_mode_dfs_temp, MCELSIUS);
+		/* NightKernel OC: Relax ECT throttle trip points by +7°C for sustained 1144MHz GPU / 2496MHz CPU */
+		if (data->boost_param.throttle_mode_control_temp > 0)
+			data->boost_param.throttle_mode_control_temp += 7 * MCELSIUS;
+		if (data->boost_param.throttle_mode_switch_on > 0)
+			data->boost_param.throttle_mode_switch_on += 7 * MCELSIUS;
 #endif
 		if (hotplug_out_threshold != 0 && hotplug_in_threshold != 0) {
 			data->hotplug_out_threshold = hotplug_out_threshold;
