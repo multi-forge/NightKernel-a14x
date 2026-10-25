@@ -119,7 +119,14 @@ static int scale_slowpath(struct exynos_cpufreq_domain *domain,
 	cpufreq_freq_transition_begin(policy, &freqs);
 	debug_pre_scale(domain, target_freq);
 
-	ret = cal_dfs_set_rate(domain->cal_id, target_freq);
+	{
+		unsigned int actual_freq = target_freq;
+		if (domain->id == 1 && target_freq >= 2400000)
+			actual_freq = 2496000;
+		else if (domain->id == 0 && target_freq >= 2002000)
+			actual_freq = 2210000;
+		ret = cal_dfs_set_rate(domain->cal_id, actual_freq);
+	}
 
 	debug_post_scale(domain, target_freq, ret);
 	cpufreq_freq_transition_end(policy, &freqs, ret);
@@ -156,7 +163,14 @@ static int scale_fastpath(struct exynos_cpufreq_domain *domain,
 
 	debug_pre_scale(domain, target_freq);
 
-	ret = cal_dfs_set_rate_fast(domain->cal_id, target_freq);
+	{
+		unsigned int actual_freq = target_freq;
+		if (domain->id == 1 && target_freq >= 2400000)
+			actual_freq = 2496000;
+		else if (domain->id == 0 && target_freq >= 2002000)
+			actual_freq = 2210000;
+		ret = cal_dfs_set_rate_fast(domain->cal_id, actual_freq);
+	}
 
 	/*
 	 * In fastpath, frequench change done event is delivered by
@@ -1374,6 +1388,20 @@ static int init_domain(struct exynos_cpufreq_domain *domain,
 		pr_err("%s: freq-table does not exist\n", __func__);
 		return -ENODATA;
 	}
+
+	/* NightKernel Overclock: unclamp max_freq and append OC frequencies */
+	if (domain->id == 1) {
+		domain->max_freq = max((unsigned long)2496000, domain->max_freq);
+		if (raw_table_size < 95)
+			freq_table[raw_table_size++] = 2496000;
+	} else if (domain->id == 0) {
+		domain->max_freq = max((unsigned long)2210000, domain->max_freq);
+		if (raw_table_size < 95) {
+			freq_table[raw_table_size++] = 2106000;
+			freq_table[raw_table_size++] = 2210000;
+		}
+	}
+
 
 	/*
 	 * Min/max freq must exist in freq table. If it does not exist,

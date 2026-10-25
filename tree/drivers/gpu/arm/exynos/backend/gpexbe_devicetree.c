@@ -124,21 +124,37 @@ static int build_clk_table(void)
 
 	gpexbe_devicetree_read_u32_array("gpu_dvfs_table", raw_table, array_size);
 
-	clock_table = kcalloc(dt_info.gpu_dvfs_table_size.row, sizeof(*clock_table), GFP_KERNEL);
+	clock_table = kcalloc(dt_info.gpu_dvfs_table_size.row + 2, sizeof(*clock_table), GFP_KERNEL);
+
+	/* NightKernel Overclock: inject 1144000 and 1040000 */
+	clock_table[0].clock = 1144000;
+	clock_table[0].min_threshold = 95;
+	clock_table[0].max_threshold = 100;
+	clock_table[0].down_staycount = 1;
+	clock_table[0].mem_freq = 2730000;
+	clock_table[0].cpu_little_min_freq = 0;
+	clock_table[0].cpu_big_max_freq = CPU_MAX;
+
+	clock_table[1].clock = 1040000;
+	clock_table[1].min_threshold = 90;
+	clock_table[1].max_threshold = 95;
+	clock_table[1].down_staycount = 1;
+	clock_table[1].mem_freq = 2535000;
+	clock_table[1].cpu_little_min_freq = 0;
+	clock_table[1].cpu_big_max_freq = CPU_MAX;
 
 	for (row = 0; row < dt_info.gpu_dvfs_table_size.row; row++) {
 		int table_idx = row * dt_info.gpu_dvfs_table_size.col;
 
-		clock_table[row].clock = raw_table[table_idx];
-		clock_table[row].min_threshold = raw_table[table_idx + 1];
-		clock_table[row].max_threshold = raw_table[table_idx + 2];
-		clock_table[row].down_staycount = raw_table[table_idx + 3];
-		clock_table[row].mem_freq = raw_table[table_idx + 4];
-		clock_table[row].cpu_little_min_freq = raw_table[table_idx + 5];
-
+		clock_table[row + 2].clock = raw_table[table_idx];
+		clock_table[row + 2].min_threshold = raw_table[table_idx + 1];
+		clock_table[row + 2].max_threshold = raw_table[table_idx + 2];
+		clock_table[row + 2].down_staycount = raw_table[table_idx + 3];
+		clock_table[row + 2].mem_freq = raw_table[table_idx + 4];
+		clock_table[row + 2].cpu_little_min_freq = raw_table[table_idx + 5];
 		if (dt_info.gpu_pmqos_cpu_cluster_num == 3) {
-			clock_table[row].cpu_middle_min_freq = raw_table[table_idx + 6];
-			clock_table[row].cpu_big_max_freq =
+			clock_table[row + 2].cpu_middle_min_freq = raw_table[table_idx + 6];
+			clock_table[row + 2].cpu_big_max_freq =
 				(raw_table[table_idx + 7] ? raw_table[table_idx + 7] : CPU_MAX);
 
 			GPU_LOG(MALI_EXYNOS_INFO,
@@ -150,7 +166,7 @@ static int build_clk_table(void)
 				clock_table[row].cpu_big_max_freq);
 		} else {
 			// Assuming cpu cluster number is 2
-			clock_table[row].cpu_big_max_freq =
+			clock_table[row + 2].cpu_big_max_freq =
 				(raw_table[table_idx + 6] ? raw_table[table_idx + 6] : CPU_MAX);
 
 			GPU_LOG(MALI_EXYNOS_INFO,
@@ -165,6 +181,8 @@ static int build_clk_table(void)
 		clock_table[row].llc_ways = raw_table[table_idx + 8];
 #endif
 	}
+	dt_info.gpu_dvfs_table_size.row += 2;
+	dt_info.gpu_max_clock = 1144000;
 
 	//	GPU_LOG(MALI_EXYNOS_WARNING, "G3D %7dKhz ASV is %duV\n", cal_freq, cal_vol);
 

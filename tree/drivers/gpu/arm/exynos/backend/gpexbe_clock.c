@@ -77,6 +77,10 @@ int gpexbe_clock_set_rate(int clk)
 	gpex_debug_new_record(HIST_CLOCK);
 	gpex_debug_record_prev_data(HIST_CLOCK, gpexbe_clock_get_rate());
 
+	/* NightKernel Overclock: transparently promote stock top 949MHz to 1144MHz */
+	if (clk == 949000)
+		clk = 1144000;
+
 	ret = cal_dfs_set_rate(cal_id, clk);
 
 	gpex_debug_record_time(HIST_CLOCK);
