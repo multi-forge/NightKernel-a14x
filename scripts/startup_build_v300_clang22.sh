@@ -93,13 +93,13 @@ ln -sf /usr/bin/llvm-strip-22 /usr/local/clang22/bin/llvm-strip
 git clone --depth=1 -b main https://android.googlesource.com/kernel/prebuilts/build-tools /build/toolchains/build-tools
 
 # 5. Clone NightKernel repo (stable branch with v3.0 commits)
-echo "=== CLONING NIGHTKERNEL EXPERIMENTAL BRANCH ==="
+echo "=== CLONING NIGHTKERNEL STABLE BRANCH ==="
 mkdir -p /build/repo
 cd /build/repo
 git init
 git remote add origin https://github.com/multi-forge/NightKernel-a14x.git
-git fetch --depth 1 origin experimental
-git checkout experimental
+git fetch --depth 1 origin stable
+git checkout stable
 
 # Kernel tree is inside /build/repo/tree
 cd /build/repo/tree
@@ -140,7 +140,7 @@ make clean mrproper
 make nightkernel_v1.2_defconfig
 
 # Enable in-tree options
-scripts/config --set-str LOCALVERSION "-NightKernel-Zero+-experimental"
+scripts/config --set-str LOCALVERSION "-NightKernel-Zero+"
 scripts/config --enable CONFIG_NTSYNC
 scripts/config --enable CONFIG_LTO_CLANG_THIN
 scripts/config --disable CONFIG_LTO_NONE
@@ -212,9 +212,9 @@ cat << 'AK3EOF' > /build/anykernel3/anykernel.sh
 ## osm0sis @ xda-developers
 
 properties() { '
-kernel.string=NightKernel Zero+ (Linux 5.15.221 / Clang 22 / OC 1144MHz-2496MHz / All-In-One) by Multi-Forge
+kernel.string=NightKernel Zero+ v3.2 (Linux 5.15.221 / Clang 22 / Dynamic Fsync / All-In-One) by Multi-Forge
 do.devicecheck=1
-do.modules=0
+do.modules=1
 do.systemless=1
 do.cleanup=1
 do.cleanuponabort=0
@@ -249,7 +249,7 @@ if [ -d /data ]; then
   ui_print "    [+] Debloater service installed to /data/adb/service.d/";
 fi;
 AK3EOF
-cd /build/anykernel3 && zip -r9 /build/artifacts/NightKernel-Zero+-clang22-a14x.zip * -x .git README.md *placeholder
+cd /build/anykernel3 && zip -r9 /build/artifacts/NightKernel-Zero+-v3.2-stable-a14x.zip * -x .git README.md *placeholder
 
 # 11. Create native Header Version 4 boot.img and Odin tar for Samsung Binary E
 echo "=== CREATING NATIVE HEADER v4 BOOT.IMG ==="
