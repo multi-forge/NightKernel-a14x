@@ -4,7 +4,7 @@ set -e
 PROJECT="stt-465818"
 ZONE="us-central1-a"
 INSTANCE_NAME="nightkernel-v300-$(date +%s)"
-STARTUP_SCRIPT="/data/data/com.termux/files/home/a14x-workspace/NightKernel/scripts/startup_build_v300_clang22.sh"
+STARTUP_SCRIPT="${STARTUP_SCRIPT:-$(dirname "$(realpath "$0")")/startup_build_v300_clang22.sh}"
 
 echo "=== LAUNCHING GCP WORKER FOR NIGHTKERNEL v3.0.0 ==="
 echo "Project: $PROJECT"
