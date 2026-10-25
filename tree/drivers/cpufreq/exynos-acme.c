@@ -325,6 +325,10 @@ static int exynos_cpufreq_target(struct cpufreq_policy *policy,
 		return scale_slowpath(domain, target_freq, relation, policy);
 
 	freq = (unsigned long)target_freq;
+	if (cpumask_test_cpu(6, &domain->cpus) && freq == 2400000)
+		freq = 2496000;
+	else if (cpumask_test_cpu(0, &domain->cpus) && freq == 2002000)
+		freq = 2210000;
 
 	return DM_CALL(domain->dm_type, &freq);
 }
@@ -339,6 +343,10 @@ static unsigned int exynos_cpufreq_fast_switch(struct cpufreq_policy *policy,
 		return 0;
 
 	freq = (unsigned long)target_freq;
+	if (cpumask_test_cpu(6, &domain->cpus) && freq == 2400000)
+		freq = 2496000;
+	else if (cpumask_test_cpu(0, &domain->cpus) && freq == 2002000)
+		freq = 2210000;
 
 	raw_spin_lock_irqsave(&domain->fast_switch_lock, flags);
 
@@ -1390,16 +1398,28 @@ static int init_domain(struct exynos_cpufreq_domain *domain,
 	}
 
 	/* NightKernel Overclock: unclamp max_freq and append OC frequencies */
-	if (domain->id == 1) {
-		domain->max_freq = max((unsigned long)2496000, domain->max_freq);
-		if (raw_table_size < 95)
-			freq_table[raw_table_size++] = 2496000;
-	} else if (domain->id == 0) {
-		domain->max_freq = max((unsigned long)2210000, domain->max_freq);
-		if (raw_table_size < 95) {
-			freq_table[raw_table_size++] = 2106000;
-			freq_table[raw_table_size++] = 2210000;
+	if (cpumask_test_cpu(6, &domain->cpus)) {
+		int k;
+		bool has_2496 = false, has_2600 = false, has_2704 = false;
+		domain->max_freq = max((unsigned long)2704000, domain->max_freq);
+		for (k = 0; k < raw_table_size; k++) {
+			if (freq_table[k] == 2496000) has_2496 = true;
+			if (freq_table[k] == 2600000) has_2600 = true;
+			if (freq_table[k] == 2704000) has_2704 = true;
 		}
+		if (!has_2496 && raw_table_size < 95) freq_table[raw_table_size++] = 2496000;
+		if (!has_2600 && raw_table_size < 95) freq_table[raw_table_size++] = 2600000;
+		if (!has_2704 && raw_table_size < 95) freq_table[raw_table_size++] = 2704000;
+	} else if (cpumask_test_cpu(0, &domain->cpus)) {
+		int k;
+		bool has_2106 = false, has_2210 = false;
+		domain->max_freq = max((unsigned long)2210000, domain->max_freq);
+		for (k = 0; k < raw_table_size; k++) {
+			if (freq_table[k] == 2106000) has_2106 = true;
+			if (freq_table[k] == 2210000) has_2210 = true;
+		}
+		if (!has_2106 && raw_table_size < 95) freq_table[raw_table_size++] = 2106000;
+		if (!has_2210 && raw_table_size < 95) freq_table[raw_table_size++] = 2210000;
 	}
 
 

@@ -345,10 +345,19 @@ int fvmap_get_freq_volt_table(unsigned int id, void *freq_volt_table, unsigned i
 					else
 						table[i].volt = fv_table->table[0].volt * STEP_UV;
 				} else if (v && v->margin_id == MARGIN_CPUCL1) {
-					if (table[i].rate >= 2600000)
+					if (table[i].rate >= 2704000)
+						table[i].volt = (fv_table->table[0].volt * STEP_UV) + 65000;
+					else if (table[i].rate >= 2600000)
 						table[i].volt = (fv_table->table[0].volt * STEP_UV) + 50000;
 					else if (table[i].rate >= 2496000)
 						table[i].volt = (fv_table->table[0].volt * STEP_UV) + 25000;
+					else
+						table[i].volt = fv_table->table[0].volt * STEP_UV;
+				} else if (v && v->margin_id == MARGIN_CPUCL0) {
+					if (table[i].rate >= 2210000)
+						table[i].volt = (fv_table->table[0].volt * STEP_UV) + 35000;
+					else if (table[i].rate >= 2106000)
+						table[i].volt = (fv_table->table[0].volt * STEP_UV) + 20000;
 					else
 						table[i].volt = fv_table->table[0].volt * STEP_UV;
 				} else {
