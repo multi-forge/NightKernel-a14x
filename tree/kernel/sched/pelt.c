@@ -474,8 +474,8 @@ int update_irq_load_avg(struct rq *rq, u64 running)
 #endif
 
 #include <trace/hooks/sched.h>
-unsigned int sysctl_sched_pelt_multiplier = 1;
-__read_mostly unsigned int sched_pelt_lshift;
+unsigned int sysctl_sched_pelt_multiplier = 2;
+__read_mostly unsigned int sched_pelt_lshift = 1;
 
 int sched_pelt_multiplier(struct ctl_table *table, int write, void *buffer,
 			  size_t *lenp, loff_t *ppos)

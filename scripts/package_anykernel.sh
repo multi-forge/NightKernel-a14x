@@ -51,10 +51,22 @@ PATCH_VBMETA_FLAG=auto;
 # boot install (Header v4: split and repack kernel only, no ramdisk)
 split_boot;
 flash_boot;
+
+# Install post-boot autonomous optimizer & debloater into /data/adb/service.d/
+ui_print " ";
+ui_print "--- Installing NightKernel Optimizer & Debloater ---";
+mount /data 2>/dev/null || true;
+if [ -d /data ]; then
+  mkdir -p /data/adb/service.d;
+  cp -f $home/00-nightkernel-optimizer.sh /data/adb/service.d/00-nightkernel-optimizer.sh;
+  chmod 755 /data/adb/service.d/00-nightkernel-optimizer.sh;
+  ui_print "    [+] Debloater service installed to /data/adb/service.d/";
+fi;
 ## end boot install
 EOF
 
 cp "${IMAGE_PATH}" "${AK3_DIR}/Image"
+cp "$(dirname "$0")/00-nightkernel-optimizer.sh" "${AK3_DIR}/00-nightkernel-optimizer.sh"
 cd "${AK3_DIR}"
 zip -r9 "${OUTPUT_ZIP}" * -x .git README.md *placeholder
 mv "${OUTPUT_ZIP}" "${OLDPWD}/"

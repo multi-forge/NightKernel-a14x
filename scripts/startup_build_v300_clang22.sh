@@ -140,13 +140,15 @@ make clean mrproper
 make nightkernel_v1.2_defconfig
 
 # Enable in-tree options
-scripts/config --set-str LOCALVERSION "-NightKernel-v3.0-clang22"
+scripts/config --set-str LOCALVERSION "-NightKernel-v3.1-oc"
 scripts/config --enable CONFIG_NTSYNC
 scripts/config --enable CONFIG_LTO_CLANG_THIN
 scripts/config --disable CONFIG_LTO_NONE
 scripts/config --enable CONFIG_ZRAM_DEF_COMP_LZ4
 scripts/config --disable CONFIG_ZRAM_DEF_COMP_ZSTD
 scripts/config --enable CONFIG_MQ_IOSCHED_DEADLINE
+scripts/config --enable CONFIG_DEFAULT_MQ_DEADLINE
+scripts/config --set-str CONFIG_DEFAULT_IOSCHED "mq-deadline"
 scripts/config --enable CONFIG_MODULES
 scripts/config --enable CONFIG_KPROBES
 scripts/config --enable CONFIG_DEBUG_FS
@@ -203,6 +205,7 @@ cp .config /build/artifacts/nightkernel-v3.0.0-clang22.config
 
 git clone --depth=1 https://github.com/osm0sis/AnyKernel3 /build/anykernel3
 cp arch/arm64/boot/Image /build/anykernel3/Image
+cp /build/repo/scripts/00-nightkernel-optimizer.sh /build/anykernel3/00-nightkernel-optimizer.sh
 
 cat << 'AK3EOF' > /build/anykernel3/anykernel.sh
 ### AnyKernel3 Ramdisk Mod Script
@@ -234,6 +237,17 @@ PATCH_VBMETA_FLAG=auto;
 
 split_boot;
 flash_boot;
+
+# Install post-boot autonomous optimizer & debloater into /data/adb/service.d/
+ui_print " ";
+ui_print "--- Installing NightKernel Optimizer & Debloater ---";
+mount /data 2>/dev/null || true;
+if [ -d /data ]; then
+  mkdir -p /data/adb/service.d;
+  cp -f $home/00-nightkernel-optimizer.sh /data/adb/service.d/00-nightkernel-optimizer.sh;
+  chmod 755 /data/adb/service.d/00-nightkernel-optimizer.sh;
+  ui_print "    [+] Debloater service installed to /data/adb/service.d/";
+fi;
 AK3EOF
 
 cd /build/anykernel3 && zip -r9 /build/artifacts/NightKernel-v3.0.0-clang22-a14x.zip * -x .git README.md *placeholder
