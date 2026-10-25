@@ -2,8 +2,8 @@
 set -x
 exec > >(tee -a /var/log/kernel-build.log) 2>&1
 
-CODENAME="NightKernel-v3.0-clang22"
-GCS_BASE="gs://laya-onnx-stt-465818/nightkernel-v123-clang22"
+CODENAME="NightKernel-v3.2.1-clang22"
+GCS_BASE="gs://laya-onnx-stt-465818/nightkernel-v321-clang22"
 
 echo "=== STARTING ${CODENAME} BUILD (Linux 5.15.221 / Clang 22 / ThinLTO / 10-core 40GB SPOT VM) $(date) ==="
 
@@ -249,7 +249,7 @@ if [ -d /data ]; then
   ui_print "    [+] Debloater service installed to /data/adb/service.d/";
 fi;
 AK3EOF
-cd /build/anykernel3 && zip -r9 /build/artifacts/NightKernel-Zero+-v3.2-stable-a14x.zip * -x .git README.md *placeholder
+cd /build/anykernel3 && zip -r9 /build/artifacts/NightKernel-Zero+-v3.2.1-stable-a14x.zip * -x .git README.md *placeholder
 
 # 11. Create native Header Version 4 boot.img and Odin tar for Samsung Binary E
 echo "=== CREATING NATIVE HEADER v4 BOOT.IMG ==="
@@ -267,14 +267,14 @@ python3 "$MKBOOTIMG" \
     --output /build/artifacts/boot.img
 
 if [ -f /build/artifacts/boot.img ]; then
-    tar -cvf /build/artifacts/boot-NightKernel-v3.0.0-a146m.tar -C /build/artifacts boot.img
+    tar -cvf /build/artifacts/boot-NightKernel-Zero+-v3.2.1-a146m.tar -C /build/artifacts boot.img
 fi
 
 cd /build/artifacts
 sha256sum Image *.config *.zip boot.img *.tar > sha256sums.txt 2>/dev/null || true
 
 echo "=== UPLOADING ARTIFACTS TO GCS ==="
-gcloud storage cp -r /build/artifacts/* "${GCS_BASE}/artifacts-v300/"
+gcloud storage cp -r /build/artifacts/* "${GCS_BASE}/artifacts-v321/"
 
 echo "=== BUILD COMPLETE AT $(date) ==="
 sync
