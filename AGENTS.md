@@ -189,6 +189,8 @@ python3 scripts/analyze_trace.py /sdcard/Download/nightkernel_trace.csv
 | `tree/security/bbg/` | Baseband Guard LSM source protecting `/efs` partitions. |
 | `tree/drivers/mmc/core/core.c` | MMC software CRC check bypass (`use_spi_crc = 0`). |
 | `tree/kernel/module.c` | Vermagic module version check bypass. |
+| `tree/fs/sync.c` | Dynamic Fsync engine with `/sys/kernel/dyn_fsync/Dyn_fsync_active` sysfs toggle. |
+| `scripts/00-nightkernel-optimizer.sh` | Post-boot debloater service disabling 26 Samsung/Meta daemons and keeping SSHD alive. |
 | `scripts/package_anykernel.sh` | AnyKernel3 installer zip packaging script. |
 | `scripts/nightbench.sh` | On-device validation suite (`hackbench`, `schbench`, `cyclictest`, `fio`). |
 | `scripts/nightkernel_tracer.sh` | Daemon logging thermal, frequency, PSI stalls, and dmesg anomalies. |
@@ -226,7 +228,10 @@ python3 scripts/analyze_trace.py /sdcard/Download/nightkernel_trace.csv
 3. **UFS 2.2 Storage Throughput**:
    - `fio --rw=read --bs=1m --iodepth=4 --direct=1`: Validates sequential read speed.
    - `fio --rw=randwrite --bs=4k --iodepth=4 --direct=0`: Validates dirty page flushing.
-4. **Thermal & PSI Telemetry Rules**:
+4. **Dynamic Fsync & I/O Latency Trade-Off**:
+   - Active by default (`1`) yielding ~100k IOPS on 4KB SQLite writes.
+   - Toggle off (`echo 0 > /sys/kernel/dyn_fsync/Dyn_fsync_active`) for professional low-latency audio where p99.9 jitter (<300µs) takes precedence over I/O throughput.
+5. **Thermal & PSI Telemetry Rules**:
    - **Throttling Warning**: Big core frequency dropping below 1800 MHz while temperature is $\ge 75^\circ\text{C}$ indicates thermal throttling.
    - **Memory Stall Warning**: Memory Pressure Stall Information (`avg10`) exceeding 15.0% indicates excessive ZRAM thrashing or memory pressure.
    - **Kernel Integrity**: Any `dmesg` matches for `panic`, `oops`, `bug`, `call trace`, or `oom-killer` flagged as release blockers.
