@@ -140,7 +140,7 @@ make clean mrproper
 make nightkernel_v1.2_defconfig
 
 # Enable in-tree options
-scripts/config --set-str LOCALVERSION "-NightKernel-v3.1-oc"
+scripts/config --set-str LOCALVERSION "-NightKernel-Zero+"
 scripts/config --enable CONFIG_NTSYNC
 scripts/config --enable CONFIG_LTO_CLANG_THIN
 scripts/config --disable CONFIG_LTO_NONE
@@ -212,7 +212,7 @@ cat << 'AK3EOF' > /build/anykernel3/anykernel.sh
 ## osm0sis @ xda-developers
 
 properties() { '
-kernel.string=NightKernel v3.0 (Linux 5.15.221 / Clang 22 / EMS Hysteresis Bypass / Pre-Wakeup Kick / NTSync PI) by Multi-Forge
+kernel.string=NightKernel Zero+ (Linux 5.15.221 / Clang 22 / OC 1144MHz-2496MHz / All-In-One) by Multi-Forge
 do.devicecheck=1
 do.modules=0
 do.systemless=1
@@ -249,8 +249,7 @@ if [ -d /data ]; then
   ui_print "    [+] Debloater service installed to /data/adb/service.d/";
 fi;
 AK3EOF
-
-cd /build/anykernel3 && zip -r9 /build/artifacts/NightKernel-v3.0.0-clang22-a14x.zip * -x .git README.md *placeholder
+cd /build/anykernel3 && zip -r9 /build/artifacts/NightKernel-Zero+-clang22-a14x.zip * -x .git README.md *placeholder
 
 # 11. Create native Header Version 4 boot.img and Odin tar for Samsung Binary E
 echo "=== CREATING NATIVE HEADER v4 BOOT.IMG ==="

@@ -5,7 +5,7 @@
 set -euo pipefail
 
 IMAGE_PATH="${1:-Image}"
-OUTPUT_ZIP="${2:-NightKernel-Base-a14x.zip}"
+OUTPUT_ZIP="${2:-NightKernel-Zero+-clang22-a14x.zip}"
 
 if [ ! -f "${IMAGE_PATH}" ]; then
     echo "Erro: Imagem ${IMAGE_PATH} não encontrada!"
@@ -22,7 +22,7 @@ cat << 'EOF' > "${AK3_DIR}/anykernel.sh"
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=NightKernel 5.15.180 (A146MUBSDDZE1) by Multi-Forge
+kernel.string=NightKernel Zero+ (Linux 5.15.221 / Clang 22 / OC 1144MHz-2496MHz / All-In-One) by Multi-Forge
 do.devicecheck=1
 do.modules=0
 do.systemless=1

@@ -1,6 +1,6 @@
 #!/system/bin/sh
 # ==============================================================================
-# NightKernel v3.1 Autonomous Optimizer & Debloater Service
+# NightKernel Zero+ Autonomous Optimizer & Debloater Service
 # Runs automatically after boot via KernelSU / Magisk service.d
 # ==============================================================================
 
@@ -10,7 +10,7 @@ log() {
 }
 
 log "=================================================="
-log "=== NightKernel v3.1 Optimizer Service Starting ==="
+log "=== NightKernel Zero+ Optimizer Service Starting ==="
 log "=================================================="
 
 # 1. Wait for Android boot completion and PackageManager availability
@@ -81,4 +81,4 @@ log "[*] Spawning autonomous SSHD watchdog daemon..."
     done
 ) &
 
-log "=== NightKernel v3.1 Optimizer Execution Complete ==="
+log "=== NightKernel Zero+ Optimizer Execution Complete ==="
