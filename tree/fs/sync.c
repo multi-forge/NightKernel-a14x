@@ -18,6 +18,66 @@
 #include <linux/quotaops.h>
 #include <linux/backing-dev.h>
 #include "internal.h"
+#include <linux/kobject.h>
+#include <linux/sysfs.h>
+
+/* Dynamic Fsync implementation for NightKernel */
+static bool dyn_fsync_active = true;
+
+static ssize_t dyn_fsync_active_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", dyn_fsync_active ? 1 : 0);
+}
+
+static ssize_t dyn_fsync_active_store(struct kobject *kobj, struct kobj_attribute *attr,
+				      const char *buf, size_t count)
+{
+	unsigned int val;
+
+	if (kstrtouint(buf, 10, &val))
+		return -EINVAL;
+
+	if (val > 1)
+		return -EINVAL;
+
+	if (dyn_fsync_active && val == 0)
+		ksys_sync();
+
+	dyn_fsync_active = (val == 1);
+	return count;
+}
+
+static struct kobj_attribute dyn_fsync_active_attr =
+	__ATTR(Dyn_fsync_active, 0644, dyn_fsync_active_show, dyn_fsync_active_store);
+
+static struct attribute *dyn_fsync_attrs[] = {
+	&dyn_fsync_active_attr.attr,
+	NULL,
+};
+
+static struct attribute_group dyn_fsync_attr_group = {
+	.attrs = dyn_fsync_attrs,
+};
+
+static int __init dyn_fsync_init(void)
+{
+	int ret;
+	struct kobject *dyn_fsync_kobj;
+
+	dyn_fsync_kobj = kobject_create_and_add("dyn_fsync", kernel_kobj);
+	if (!dyn_fsync_kobj)
+		return -ENOMEM;
+
+	ret = sysfs_create_group(dyn_fsync_kobj, &dyn_fsync_attr_group);
+	if (ret) {
+		kobject_put(dyn_fsync_kobj);
+		return ret;
+	}
+
+	pr_info("NightKernel: Dynamic Fsync initialized (/sys/kernel/dyn_fsync/Dyn_fsync_active)\n");
+	return 0;
+}
+late_initcall(dyn_fsync_init);
 
 #define VALID_FLAGS (SYNC_FILE_RANGE_WAIT_BEFORE|SYNC_FILE_RANGE_WRITE| \
 			SYNC_FILE_RANGE_WAIT_AFTER)
@@ -209,6 +269,10 @@ static int do_fsync(unsigned int fd, int datasync)
 	int ret = -EBADF;
 
 	if (f.file) {
+		if (dyn_fsync_active) {
+			fdput(f);
+			return 0;
+		}
 		ret = vfs_fsync(f.file, datasync);
 		fdput(f);
 		inc_syscfs(current);

@@ -93,13 +93,13 @@ ln -sf /usr/bin/llvm-strip-22 /usr/local/clang22/bin/llvm-strip
 git clone --depth=1 -b main https://android.googlesource.com/kernel/prebuilts/build-tools /build/toolchains/build-tools
 
 # 5. Clone NightKernel repo (stable branch with v3.0 commits)
-echo "=== CLONING NIGHTKERNEL STABLE BRANCH ==="
+echo "=== CLONING NIGHTKERNEL EXPERIMENTAL BRANCH ==="
 mkdir -p /build/repo
 cd /build/repo
 git init
 git remote add origin https://github.com/multi-forge/NightKernel-a14x.git
-git fetch --depth 1 origin stable
-git checkout stable
+git fetch --depth 1 origin experimental
+git checkout experimental
 
 # Kernel tree is inside /build/repo/tree
 cd /build/repo/tree
@@ -140,7 +140,7 @@ make clean mrproper
 make nightkernel_v1.2_defconfig
 
 # Enable in-tree options
-scripts/config --set-str LOCALVERSION "-NightKernel-Zero+"
+scripts/config --set-str LOCALVERSION "-NightKernel-Zero+-experimental"
 scripts/config --enable CONFIG_NTSYNC
 scripts/config --enable CONFIG_LTO_CLANG_THIN
 scripts/config --disable CONFIG_LTO_NONE
