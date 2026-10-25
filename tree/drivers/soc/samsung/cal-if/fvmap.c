@@ -335,10 +335,28 @@ int fvmap_get_freq_volt_table(unsigned int id, void *freq_volt_table, unsigned i
 		}
 
 		if (table[i].volt == 0) {
-			if (table[i].rate > fv_table->table[0].rate)
-				table[i].volt = fv_table->table[0].volt * STEP_UV;
-			else if (table[i].rate < fv_table->table[num_of_lv - 1].rate)
+			if (table[i].rate > fv_table->table[0].rate) {
+				struct vclk *v = cmucal_get_node(id);
+				if (v && v->margin_id == MARGIN_G3D) {
+					if (table[i].rate >= 1144000)
+						table[i].volt = 737500;
+					else if (table[i].rate >= 1040000)
+						table[i].volt = 712500;
+					else
+						table[i].volt = fv_table->table[0].volt * STEP_UV;
+				} else if (v && v->margin_id == MARGIN_CPUCL1) {
+					if (table[i].rate >= 2600000)
+						table[i].volt = (fv_table->table[0].volt * STEP_UV) + 50000;
+					else if (table[i].rate >= 2496000)
+						table[i].volt = (fv_table->table[0].volt * STEP_UV) + 25000;
+					else
+						table[i].volt = fv_table->table[0].volt * STEP_UV;
+				} else {
+					table[i].volt = fv_table->table[0].volt * STEP_UV;
+				}
+			} else if (table[i].rate < fv_table->table[num_of_lv - 1].rate) {
 				table[i].volt = fv_table->table[num_of_lv - 1].volt * STEP_UV;
+			}
 		}
 	}
 
@@ -361,6 +379,18 @@ int fvmap_get_voltage_table(unsigned int id, unsigned int *table)
 	fvmap_header = fvmap_base;
 	fv_table = fvmap_base + fvmap_header[idx].o_ratevolt;
 	num_of_lv = fvmap_header[idx].num_of_lv;
+
+	/* NightKernel OC: Expand G3D ASV voltage table to 10 levels if stock ACPM returns 8 */
+	{
+		struct vclk *v = cmucal_get_node(id);
+		if (v && v->margin_id == MARGIN_G3D && num_of_lv == 8) {
+			table[0] = 737500; /* 1144000 kHz */
+			table[1] = 712500; /* 1040000 kHz */
+			for (i = 0; i < 8; i++)
+				table[i + 2] = fv_table->table[i].volt * STEP_UV;
+			return 10;
+		}
+	}
 
 	for (i = 0; i < num_of_lv; i++)
 		table[i] = fv_table->table[i].volt * STEP_UV;
@@ -518,22 +548,22 @@ int fvmap_init(void __iomem *sram_base)
 	if (sysfs_create_group(kobj, &asv_g_spec_grp))
 		pr_err("Fail to create asv_g_spec group\n");
 
-	/* NightKernel: Default to safe stock voltage margin (0%) at boot for universal Binary E compatibility */
+	/* NightKernel OC: Initialize calibrated safe margins (+4% G3D @ 1144MHz, +2% CPUCL1 @ 2496MHz) */
 	{
 		int vid;
-		percent_margin_table[MARGIN_CPUCL1] = 0;
+		percent_margin_table[MARGIN_CPUCL1] = 2;
 		percent_margin_table[MARGIN_CPUCL0] = 0;
-		percent_margin_table[MARGIN_G3D] = 0;
+		percent_margin_table[MARGIN_G3D] = 4;
 		vid = get_vclk_id_from_margin_id(MARGIN_CPUCL1);
 		if (vid >= 0)
-			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, 0);
+			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, 2);
 		vid = get_vclk_id_from_margin_id(MARGIN_CPUCL0);
 		if (vid >= 0)
 			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, 0);
 		vid = get_vclk_id_from_margin_id(MARGIN_G3D);
 		if (vid >= 0)
-			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, 0);
-		pr_info("NightKernel: Voltage margins initialized to stock 0%% for universal A146B Binary E compatibility\n");
+			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, 4);
+		pr_info("NightKernel OC: Voltage margins initialized (+4%% G3D 1144MHz, +2%% CPUCL1 2496MHz)\n");
 	}
 
 	return 0;
