@@ -24,7 +24,7 @@ cat << 'EOF' > "${AK3_DIR}/anykernel.sh"
 properties() { '
 kernel.string=NightKernel Zero+ (Linux 5.15.221 / Clang 22 / OC 1144MHz-2496MHz / All-In-One) by Multi-Forge
 do.devicecheck=1
-do.modules=0
+do.modules=1
 do.systemless=1
 do.cleanup=1
 do.cleanuponabort=0
