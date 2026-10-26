@@ -95,13 +95,10 @@ static int read_interactive_info_array(void)
 
 	gpexbe_devicetree_read_u32_array("interactive_info", interactive_info, 3);
 
-	/* TODO: change default value to something more sensible */
-	dt_info.interactive_info.highspeed_clock =
-		interactive_info[0] == 0 ? 500 : (u32)interactive_info[0];
-	dt_info.interactive_info.highspeed_load =
-		interactive_info[1] == 0 ? 100 : (u32)interactive_info[1];
-	dt_info.interactive_info.highspeed_delay =
-		interactive_info[2] == 0 ? 0 : (u32)interactive_info[2];
+	/* NightKernel Zero+: Override Samsung vendor_boot 611MHz / 94% limit */
+	dt_info.interactive_info.highspeed_clock = 1144000;
+	dt_info.interactive_info.highspeed_load = 65;
+	dt_info.interactive_info.highspeed_delay = 0;
 
 	return 0;
 }
