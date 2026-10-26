@@ -1223,7 +1223,7 @@ out:
 	return IRQ_HANDLED;
 }
 
-#ifdef CONFIG_ARM_EXYNOS_DEVFREQ
+#if 0 /* Disabled legacy PM_QOS incompatible with Linux 5.15 GKI */
 static void s3c64xx_serial_qos_func(struct work_struct *work)
 {
 	struct exynos_uart_port *ourport =
@@ -2875,7 +2875,7 @@ static int exynos_serial_probe(struct platform_device *pdev)
 
 	pr_debug("%s: initialising port %p...\n", __func__, ourport);
 
-#ifdef CONFIG_ARM_EXYNOS_DEVFREQ
+#if 0 /* Disabled legacy PM_QOS incompatible with Linux 5.15 GKI */
 	if (of_property_read_u32(pdev->dev.of_node, "mif_qos_val",
 						&ourport->mif_qos_val))
 		ourport->mif_qos_val = 0;
