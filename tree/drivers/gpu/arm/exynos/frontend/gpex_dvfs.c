@@ -59,10 +59,9 @@ static void gpex_dvfs_context_init(struct device **dev)
 
 	if (!strncmp("interactive", of_string, strlen("interactive"))) {
 		dvfs.governor_type = G3D_DVFS_GOVERNOR_INTERACTIVE;
-		dvfs.interactive.highspeed_clock = 845000;
-		dvfs.interactive.highspeed_load = 70;
-		dvfs.interactive.highspeed_delay =
-			gpexbe_devicetree_get_int(interactive_info.highspeed_delay);
+		dvfs.interactive.highspeed_clock = 1144000;
+		dvfs.interactive.highspeed_load = 65;
+		dvfs.interactive.highspeed_delay = 0;
 	} else if (!strncmp("joint", of_string, strlen("joint"))) {
 		dvfs.governor_type = G3D_DVFS_GOVERNOR_JOINT;
 	} else if (!strncmp("static", of_string, strlen("static"))) {

@@ -325,9 +325,9 @@ static int exynos_cpufreq_target(struct cpufreq_policy *policy,
 		return scale_slowpath(domain, target_freq, relation, policy);
 
 	freq = (unsigned long)target_freq;
-	if ((domain->cal_id == 0xb040003 || cpumask_test_cpu(6, &domain->cpus)) && freq == 2400000)
-		freq = 2704000;
-	else if ((domain->cal_id == 0xb040002 || cpumask_test_cpu(0, &domain->cpus)) && freq == 2002000)
+	if ((domain->cal_id == 0xb040003 || cpumask_test_cpu(6, &domain->cpus)) && freq >= 2340000)
+		freq = 2496000;
+	else if ((domain->cal_id == 0xb040002 || cpumask_test_cpu(0, &domain->cpus)) && freq >= 1920000)
 		freq = 2210000;
 
 	return DM_CALL(domain->dm_type, &freq);
@@ -343,9 +343,9 @@ static unsigned int exynos_cpufreq_fast_switch(struct cpufreq_policy *policy,
 		return 0;
 
 	freq = (unsigned long)target_freq;
-	if ((domain->cal_id == 0xb040003 || cpumask_test_cpu(6, &domain->cpus)) && freq == 2400000)
-		freq = 2704000;
-	else if ((domain->cal_id == 0xb040002 || cpumask_test_cpu(0, &domain->cpus)) && freq == 2002000)
+	if ((domain->cal_id == 0xb040003 || cpumask_test_cpu(6, &domain->cpus)) && freq >= 2340000)
+		freq = 2496000;
+	else if ((domain->cal_id == 0xb040002 || cpumask_test_cpu(0, &domain->cpus)) && freq >= 1920000)
 		freq = 2210000;
 
 	raw_spin_lock_irqsave(&domain->fast_switch_lock, flags);
