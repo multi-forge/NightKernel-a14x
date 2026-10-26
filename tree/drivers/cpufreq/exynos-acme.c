@@ -325,9 +325,9 @@ static int exynos_cpufreq_target(struct cpufreq_policy *policy,
 		return scale_slowpath(domain, target_freq, relation, policy);
 
 	freq = (unsigned long)target_freq;
-	if (cpumask_test_cpu(6, &domain->cpus) && freq == 2400000)
-		freq = 2496000;
-	else if (cpumask_test_cpu(0, &domain->cpus) && freq == 2002000)
+	if ((domain->cal_id == 0xb040003 || cpumask_test_cpu(6, &domain->cpus)) && freq == 2400000)
+		freq = 2704000;
+	else if ((domain->cal_id == 0xb040002 || cpumask_test_cpu(0, &domain->cpus)) && freq == 2002000)
 		freq = 2210000;
 
 	return DM_CALL(domain->dm_type, &freq);
@@ -343,9 +343,9 @@ static unsigned int exynos_cpufreq_fast_switch(struct cpufreq_policy *policy,
 		return 0;
 
 	freq = (unsigned long)target_freq;
-	if (cpumask_test_cpu(6, &domain->cpus) && freq == 2400000)
-		freq = 2496000;
-	else if (cpumask_test_cpu(0, &domain->cpus) && freq == 2002000)
+	if ((domain->cal_id == 0xb040003 || cpumask_test_cpu(6, &domain->cpus)) && freq == 2400000)
+		freq = 2704000;
+	else if ((domain->cal_id == 0xb040002 || cpumask_test_cpu(0, &domain->cpus)) && freq == 2002000)
 		freq = 2210000;
 
 	raw_spin_lock_irqsave(&domain->fast_switch_lock, flags);
@@ -759,6 +759,9 @@ init_constraint_table_dt(struct exynos_dm_freq *dm_table, int table_length,
 				break;
 			}
 		}
+
+		if (c_index == table_size && table_size > 0)
+			dm_table[index].slave_freq = table[table_size - 1].slave_freq;
 	}
 
 	kfree(table);
@@ -1398,10 +1401,10 @@ static int init_domain(struct exynos_cpufreq_domain *domain,
 	}
 
 	/* NightKernel Overclock: unclamp max_freq and append OC frequencies */
-	if (cpumask_test_cpu(6, &domain->cpus)) {
+	if (domain->cal_id == 0xb040003 || cpumask_test_cpu(6, &domain->cpus)) {
 		int k;
 		bool has_2496 = false, has_2600 = false, has_2704 = false;
-		domain->max_freq = max((unsigned long)2704000, domain->max_freq);
+		domain->max_freq = 2704000;
 		for (k = 0; k < raw_table_size; k++) {
 			if (freq_table[k] == 2496000) has_2496 = true;
 			if (freq_table[k] == 2600000) has_2600 = true;
@@ -1410,10 +1413,10 @@ static int init_domain(struct exynos_cpufreq_domain *domain,
 		if (!has_2496 && raw_table_size < 95) freq_table[raw_table_size++] = 2496000;
 		if (!has_2600 && raw_table_size < 95) freq_table[raw_table_size++] = 2600000;
 		if (!has_2704 && raw_table_size < 95) freq_table[raw_table_size++] = 2704000;
-	} else if (cpumask_test_cpu(0, &domain->cpus)) {
+	} else if (domain->cal_id == 0xb040002 || cpumask_test_cpu(0, &domain->cpus)) {
 		int k;
 		bool has_2106 = false, has_2210 = false;
-		domain->max_freq = max((unsigned long)2210000, domain->max_freq);
+		domain->max_freq = 2210000;
 		for (k = 0; k < raw_table_size; k++) {
 			if (freq_table[k] == 2106000) has_2106 = true;
 			if (freq_table[k] == 2210000) has_2210 = true;
