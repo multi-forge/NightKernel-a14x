@@ -401,7 +401,7 @@
 			clocks = <0x0f 0x4b0>;
 			clock-names = "DEVFREQ";
 			use_delay_time = "false";
-			freq_info = <0x1fefc8 0x66c88 0xa50a0 0xa50a0 0x1fefc8 0xf78f0>;
+			freq_info = <0x1fefc8 0x66c88 0xa50a0 0xa50a0 0x29a7d0 0xf78f0>;
 			boot_info = <0x28 0x1fefc8>;
 			governor = <0x00>;
 			dfs_id = <0xb040000>;
@@ -420,7 +420,7 @@
 
 				mode_0 {
 					mode_id = <0x00>;
-					target_load = "60 676000:84 845000:90 1014000:95 1352000:97 2093000:99";
+					target_load = "60 676000:84 845000:90 1014000:95 1352000:97 2093000:98 2730000:99";
 					min_sample_time = <0x32>;
 					hold_sample_time = <0x64>;
 					hispeed_load = <0x62>;
@@ -433,7 +433,7 @@
 					min_sample_time = <0x32>;
 					hold_sample_time = <0x64>;
 					hispeed_load = <0x03>;
-					hispeed_freq = <0x1fefc8>;
+					hispeed_freq = <0x29a7d0>;
 				};
 			};
 		};

@@ -1868,6 +1868,9 @@ static int exynos_devfreq_parse_dt(struct device_node *np, struct exynos_devfreq
 	data->min_freq = freq_array[3];
 	data->max_freq = freq_array[4];
 	data->reboot_freq = freq_array[5];
+	if (!strcmp(devfreq_domain_name, "MIF"))
+		data->max_freq = 2730000;
+
 
 	if (of_property_read_u32_array(np, "boot_info", (u32 *)&boot_array,
 				       (size_t)(ARRAY_SIZE(boot_array)))) {
