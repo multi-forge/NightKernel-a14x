@@ -154,11 +154,6 @@ scripts/config --enable CONFIG_KPROBES
 scripts/config --enable CONFIG_DEBUG_FS
 scripts/config --enable CONFIG_CPU_IDLE_GOV_TEO
 
-scripts/config --enable CONFIG_ARM_EXYNOS_ACME
-scripts/config --enable CONFIG_ARM_EXYNOS_DEVFREQ
-scripts/config --enable CONFIG_ARM_EXYNOS_DEVFREQ_DEBUG
-scripts/config --enable CONFIG_EXYNOS_ALT_DVFS
-scripts/config --module CONFIG_MALI_MIDGARD
 if ! which pahole >/dev/null 2>&1; then
     echo "Warning: pahole not found, disabling CONFIG_DEBUG_INFO_BTF"
     scripts/config --disable CONFIG_DEBUG_INFO_BTF
