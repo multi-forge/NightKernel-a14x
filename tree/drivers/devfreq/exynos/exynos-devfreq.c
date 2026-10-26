@@ -1868,7 +1868,7 @@ static int exynos_devfreq_parse_dt(struct device_node *np, struct exynos_devfreq
 	data->min_freq = freq_array[3];
 	data->max_freq = freq_array[4];
 	data->reboot_freq = freq_array[5];
-	if (!strcmp(devfreq_domain_name, "MIF"))
+	if (data->dfs_id == 0xb040000)
 		data->max_freq = 2730000;
 
 
