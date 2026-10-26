@@ -154,6 +154,11 @@ scripts/config --enable CONFIG_KPROBES
 scripts/config --enable CONFIG_DEBUG_FS
 scripts/config --enable CONFIG_CPU_IDLE_GOV_TEO
 
+scripts/config --enable CONFIG_ARM_EXYNOS_ACME
+scripts/config --enable CONFIG_ARM_EXYNOS_DEVFREQ
+scripts/config --enable CONFIG_ARM_EXYNOS_DEVFREQ_DEBUG
+scripts/config --enable CONFIG_EXYNOS_ALT_DVFS
+scripts/config --enable CONFIG_MALI_MIDGARD
 if ! which pahole >/dev/null 2>&1; then
     echo "Warning: pahole not found, disabling CONFIG_DEBUG_INFO_BTF"
     scripts/config --disable CONFIG_DEBUG_INFO_BTF
@@ -201,6 +206,7 @@ fi
 
 # 10. Package AnyKernel3
 cp arch/arm64/boot/Image /build/artifacts/Image
+cp arch/arm64/boot/dts/exynos/s5e8535.dtb /build/artifacts/s5e8535.dtb || true
 cp .config /build/artifacts/nightkernel-v3.0.0-clang22.config
 
 git clone --depth=1 https://github.com/osm0sis/AnyKernel3 /build/anykernel3
