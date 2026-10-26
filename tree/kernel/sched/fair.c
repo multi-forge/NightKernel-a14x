@@ -39,9 +39,9 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(sched_stat_runtime);
  *
  * (default: 6ms * (1 + ilog(ncpus)), units: nanoseconds)
  */
-unsigned int sysctl_sched_latency			= 6000000ULL;
+unsigned int sysctl_sched_latency			= 10000000ULL;
 EXPORT_SYMBOL_GPL(sysctl_sched_latency);
-static unsigned int normalized_sysctl_sched_latency	= 6000000ULL;
+static unsigned int normalized_sysctl_sched_latency	= 10000000ULL;
 
 /*
  * The initial- and re-scaling of tunables is configurable
@@ -54,15 +54,15 @@ static unsigned int normalized_sysctl_sched_latency	= 6000000ULL;
  *
  * (default SCHED_TUNABLESCALING_LOG = *(1+ilog(ncpus))
  */
-unsigned int sysctl_sched_tunable_scaling = SCHED_TUNABLESCALING_LOG;
+unsigned int sysctl_sched_tunable_scaling = SCHED_TUNABLESCALING_NONE;
 
 /*
  * Minimal preemption granularity for CPU-bound tasks:
  *
  * (default: 0.75 msec * (1 + ilog(ncpus)), units: nanoseconds)
  */
-unsigned int sysctl_sched_min_granularity			= 750000ULL;
-static unsigned int normalized_sysctl_sched_min_granularity	= 750000ULL;
+unsigned int sysctl_sched_min_granularity			= 2000000ULL;
+static unsigned int normalized_sysctl_sched_min_granularity	= 2000000ULL;
 
 /*
  * This value is kept at sysctl_sched_latency/sysctl_sched_min_granularity

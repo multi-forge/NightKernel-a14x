@@ -463,6 +463,13 @@ int gpu_dvfs_decide_next_freq(int utilization)
 
 	if (gpex_clboost_check_activation_condition())
 		dvfs->step = gpex_clock_get_table_idx(gpex_clock_get_max_clock());
+	/* Langsdorff GPU Floor: sustain minimum 845MHz when utilization >= 65% to eliminate frame drops */
+	if (utilization >= 65) {
+		int floor_idx = gpex_clock_get_table_idx(845000);
+		if (floor_idx >= 0 && dvfs->step > floor_idx)
+			dvfs->step = floor_idx;
+	}
+
 
 	return dvfs->table[dvfs->step].clock;
 }
