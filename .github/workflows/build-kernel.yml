@@ -143,8 +143,8 @@ jobs:
           EOF
           sed -i 's/^          //' ak3/anykernel.sh
           (cd ak3 && zip -r9 ../out/NightKernel-Zero+-$V-a14x.zip * -x .git README.md '*placeholder')
-          curl -sSL https://raw.githubusercontent.com/LineageOS/android_system_tools_mkbootimg/lineage-22.1/mkbootimg.py -o mkbootimg.py
-          python3 mkbootimg.py --kernel out/Image --header_version 4 --os_version 15.0.0 --os_patch_level 2026-09 --output out/boot.img
+          git clone --depth=1 -b lineage-22.1 https://github.com/LineageOS/android_system_tools_mkbootimg mkbootimg
+          python3 mkbootimg/mkbootimg.py --kernel out/Image --header_version 4 --os_version 15.0.0 --os_patch_level 2026-09 --output out/boot.img
           tar -cvf out/boot-NightKernel-Zero+-$V-a146m.tar -C out boot.img
           cp build.log out/
           (cd out && sha256sum * > sha256sums.txt)
