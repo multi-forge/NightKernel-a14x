@@ -123,20 +123,20 @@ static int build_clk_table(void)
 
 	clock_table = kcalloc(dt_info.gpu_dvfs_table_size.row + 2, sizeof(*clock_table), GFP_KERNEL);
 
-	/* NightKernel Overclock: inject 1144000 and 1040000 */
+	/* NightKernel Overclock: inject 1144000 and 1040000 with anti-flapping staycount and safe MIF frequencies */
 	clock_table[0].clock = 1144000;
-	clock_table[0].min_threshold = 95;
+	clock_table[0].min_threshold = 92;
 	clock_table[0].max_threshold = 100;
-	clock_table[0].down_staycount = 1;
-	clock_table[0].mem_freq = 2730000;
+	clock_table[0].down_staycount = 5;
+	clock_table[0].mem_freq = 2288000;
 	clock_table[0].cpu_little_min_freq = 0;
 	clock_table[0].cpu_big_max_freq = CPU_MAX;
 
 	clock_table[1].clock = 1040000;
-	clock_table[1].min_threshold = 90;
-	clock_table[1].max_threshold = 95;
-	clock_table[1].down_staycount = 1;
-	clock_table[1].mem_freq = 2535000;
+	clock_table[1].min_threshold = 85;
+	clock_table[1].max_threshold = 92;
+	clock_table[1].down_staycount = 5;
+	clock_table[1].mem_freq = 2093000;
 	clock_table[1].cpu_little_min_freq = 0;
 	clock_table[1].cpu_big_max_freq = CPU_MAX;
 

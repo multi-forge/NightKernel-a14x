@@ -339,9 +339,9 @@ int fvmap_get_freq_volt_table(unsigned int id, void *freq_volt_table, unsigned i
 				struct vclk *v = cmucal_get_node(id);
 				if (v && v->margin_id == MARGIN_G3D) {
 					if (table[i].rate >= 1144000)
-						table[i].volt = 737500;
+						table[i].volt = 762500;
 					else if (table[i].rate >= 1040000)
-						table[i].volt = 712500;
+						table[i].volt = 725000;
 					else
 						table[i].volt = fv_table->table[0].volt * STEP_UV;
 				} else if (v && v->margin_id == MARGIN_CPUCL1) {

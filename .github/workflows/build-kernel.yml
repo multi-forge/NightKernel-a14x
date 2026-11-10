@@ -1,0 +1,219 @@
+name: Build NightKernel
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch do kernel"
+        default: experimental
+        type: choice
+        options: [experimental, stable, main, debug]
+      version:
+        description: "Nome da versão (ex: v3.3.0-experimental)"
+        default: v3.3.0-experimental
+      release:
+        description: "Publicar como release (pre-release)?"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 4G
+      CCACHE_COMPRESS: "1"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_SLOPPINESS: "file_macro,locale,time_macros"
+      KBUILD_BUILD_TIMESTAMP: "Thu Jan  1 00:00:00 UTC 1970"
+      KBUILD_BUILD_USER: "multi-forge"
+      KBUILD_BUILD_HOST: "nightkernel"
+    steps:
+      - name: Liberar espaço no runner
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          sudo docker image prune -af || true
+          df -h /
+
+      - name: Checkout (${{ inputs.branch }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 1
+
+      - name: Dependências + Clang 22
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y git curl bc bison flex libssl-dev make gcc g++ libelf-dev python3 libncurses-dev zip zstd ccache dwarves patch rsync cpio
+          echo "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-22 main" | sudo tee /etc/apt/sources.list.d/llvm22.list
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+          sudo apt-get update -y
+          sudo apt-get install -y clang-22 lld-22 llvm-22 llvm-22-tools
+          mkdir -p $HOME/clang22/bin $HOME/ccache-bin
+          for t in clang clang++ ld.lld llvm-ar llvm-nm llvm-objcopy llvm-objdump llvm-readelf llvm-strip; do
+            [ -f /usr/bin/${t}-22 ] && ln -sf /usr/bin/${t}-22 $HOME/clang22/bin/${t}
+          done
+          ln -sf $(which ccache) $HOME/ccache-bin/clang
+          ln -sf $(which ccache) $HOME/ccache-bin/clang++
+          git clone --depth=1 https://android.googlesource.com/kernel/prebuilts/build-tools $HOME/build-tools
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-${{ inputs.branch }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-${{ inputs.branch }}-
+            ccache-
+
+      - name: ReSukiSU + Baseband-guard
+        working-directory: tree
+        run: |
+          if [ ! -d KernelSU/kernel ]; then
+            rm -rf KernelSU drivers/kernelsu
+            git clone --depth 1 -b v4.2.0-rc3 https://github.com/ReSukiSU/ReSukiSU.git KernelSU
+            ln -sf ../KernelSU/kernel drivers/kernelsu
+          fi
+          if [ ! -d Baseband-guard ]; then
+            rm -rf Baseband-guard security/baseband-guard
+            git clone --depth 1 -b main https://github.com/vc-teahouse/Baseband-guard.git Baseband-guard
+            ln -sf ../Baseband-guard security/baseband-guard
+          fi
+          sed -i 's/-Werror=/-W/g; s/KBUILD_CFLAGS-$(CONFIG_WERROR) += -Werror//g' Makefile
+          sed -i 's/KBUILD_CFLAGS += -Wall -Werror/KBUILD_CFLAGS += -Wall/' drivers/gpu/arm/v_r38p1/Makefile drivers/gpu/arm/bv_r38p1/Makefile 2>/dev/null || true
+
+      - name: Compilar kernel
+        working-directory: tree
+        run: |
+          export PATH=$HOME/ccache-bin:$HOME/clang22/bin:$HOME/build-tools/path/linux-x86:$PATH
+          export LLVM=1 LLVM_IAS=1 ARCH=arm64 SUBARCH=arm64 TARGET_SOC=s5e8535 DTC_FLAGS="-@" PLATFORM_VERSION=15 ANDROID_MAJOR_VERSION=v
+          export KCFLAGS="-Wno-error -Wno-error=strict-prototypes -Wno-error=implicit-int -Wno-error=deprecated-non-prototype -Wno-error=uninitialized -Wno-error=enum-compare -Wno-error=implicit-enum-enum-cast -Wno-error=enum-conversion"
+          make nightkernel_v1.2_defconfig
+          scripts/config --set-str LOCALVERSION "-NightKernel-Zero+"
+          scripts/config --enable CONFIG_NTSYNC
+          scripts/config --enable CONFIG_LRU_GEN --enable CONFIG_LRU_GEN_ENABLED
+          scripts/config --enable CONFIG_LTO_CLANG_THIN --disable CONFIG_LTO_NONE
+          scripts/config --module CONFIG_ZSMALLOC --module CONFIG_ZRAM
+          scripts/config --enable CONFIG_CRYPTO_LZ4 --enable CONFIG_ZRAM_DEF_COMP_LZ4 --disable CONFIG_ZRAM_DEF_COMP_LZORLE --disable CONFIG_ZRAM_DEF_COMP_ZSTD
+          scripts/config --set-str CONFIG_ZRAM_DEF_COMP "lz4"
+          scripts/config --enable CONFIG_SLUB_DEBUG
+          scripts/config --enable CONFIG_MQ_IOSCHED_DEADLINE --enable CONFIG_DEFAULT_MQ_DEADLINE
+          scripts/config --set-str CONFIG_DEFAULT_IOSCHED "mq-deadline"
+          scripts/config --enable CONFIG_MODULES --enable CONFIG_KPROBES --enable CONFIG_DEBUG_FS --enable CONFIG_CPU_IDLE_GOV_TEO
+          make olddefconfig
+          ccache -z
+          ccache -s
+          set -o pipefail
+          make -j$(( $(nproc) + 2 )) CC="ccache clang" HOSTCC="ccache clang" 2>&1 | tee ../build.log
+          echo "=== CCACHE STATS AFTER BUILD ==="
+          ccache -s
+          ls -lh arch/arm64/boot/Image
+
+      - name: Empacotar (AnyKernel3 + boot.img + Odin tar + Modules)
+        run: |
+          V="${{ inputs.version }}"
+          mkdir -p out out_modules
+          cp tree/arch/arm64/boot/Image out/
+          cp tree/arch/arm64/boot/dts/exynos/s5e8535.dtb out/ 2>/dev/null || true
+          cp tree/.config out/nightkernel-$V.config
+          find tree -name "*.ko" -exec cp {} out_modules/ \;
+          if ls out_modules/*.ko >/dev/null 2>&1; then
+            $HOME/clang22/bin/llvm-strip --strip-debug out_modules/*.ko 2>/dev/null || true
+            tar -czf out/modules-NightKernel-Zero+-$V-a14x.tar.gz -C out_modules .
+          fi
+          git clone --depth=1 https://github.com/osm0sis/AnyKernel3 ak3
+          cp out/Image ak3/
+          mkdir -p ak3/modules_patch
+          [ -f out_modules/mali_kbase.ko ] && cp out_modules/mali_kbase.ko ak3/modules_patch/
+          [ -f out_modules/exynos-drm.ko ] && cp out_modules/exynos-drm.ko ak3/modules_patch/
+          [ -f scripts/00-nightkernel-optimizer.sh ] && cp scripts/00-nightkernel-optimizer.sh ak3/
+          cat > ak3/anykernel.sh << 'EOF'
+          properties() { '
+          kernel.string=NightKernel Zero+ by Multi-Forge
+          do.devicecheck=1
+          do.modules=0
+          do.systemless=1
+          do.cleanup=1
+          do.cleanuponabort=0
+          device.name1=a14x
+          device.name2=a14
+          device.name3=s5e8535
+          device.name4=SM-A146M
+          device.name5=SM-A146B
+          supported.versions=
+          supported.patchlevels=
+          supported.vendorpatchlevels=
+          '; }
+          BLOCK=/dev/block/by-name/boot;
+          IS_SLOT_DEVICE=0;
+          RAMDISK_COMPRESSION=auto;
+          PATCH_VBMETA_FLAG=auto;
+          . tools/ak3-core.sh;
+          split_boot;
+          flash_boot;
+          VB="";
+          for p in /dev/block/by-name/vendor_boot /dev/block/bootdevice/by-name/vendor_boot /dev/block/platform/*/by-name/vendor_boot; do
+            [ -e "$p" ] && VB="$p" && break;
+          done;
+          if [ -n "$VB" -a -f "$home/modules_patch/mali_kbase.ko" ]; then
+            ui_print " ";
+            ui_print "Patching vendor_boot DLKM (Mali 1.144GHz OC)...";
+            VB_DIR=$home/vb_work;
+            mkdir -p $VB_DIR;
+            cd $VB_DIR;
+            $home/tools/magiskboot unpack -h $VB >/dev/null 2>&1 || true;
+            if [ -f vendor_ramdisk/dlkm.cpio ]; then
+              $home/tools/magiskboot cpio vendor_ramdisk/dlkm.cpio "add 0644 lib/modules/mali_kbase.ko $home/modules_patch/mali_kbase.ko" >/dev/null 2>&1;
+              [ -f "$home/modules_patch/exynos-drm.ko" ] && $home/tools/magiskboot cpio vendor_ramdisk/dlkm.cpio "add 0644 lib/modules/exynos-drm.ko $home/modules_patch/exynos-drm.ko" >/dev/null 2>&1;
+              $home/tools/magiskboot repack $VB new-vendor_boot.img >/dev/null 2>&1;
+              if [ -f new-vendor_boot.img ]; then
+                cat new-vendor_boot.img > $VB;
+                sync;
+                ui_print "vendor_boot DLKM successfully patched!";
+              else
+                ui_print "Warning: vendor_boot repack failed, keeping original";
+              fi;
+            else
+              ui_print "Warning: vendor_ramdisk/dlkm.cpio not found";
+            fi;
+            cd $home;
+            rm -rf $VB_DIR;
+          fi;
+          if [ -f $home/00-nightkernel-optimizer.sh ]; then
+            mount /data 2>/dev/null || true;
+            mkdir -p /data/adb/service.d;
+            cp -f $home/00-nightkernel-optimizer.sh /data/adb/service.d/;
+            chmod 755 /data/adb/service.d/00-nightkernel-optimizer.sh;
+          fi;
+          EOF
+          sed -i 's/^          //' ak3/anykernel.sh
+          (cd ak3 && zip -r9 ../out/NightKernel-Zero+-$V-a14x.zip * -x .git README.md '*placeholder')
+          git clone --depth=1 -b lineage-22.1 https://github.com/LineageOS/android_system_tools_mkbootimg mkbootimg
+          python3 mkbootimg/mkbootimg.py --kernel out/Image --header_version 4 --os_version 15.0.0 --os_patch_level 2026-09 --output out/boot.img
+          tar -cvf out/boot-NightKernel-Zero+-$V-a146m.tar -C out boot.img
+          cp build.log out/
+          (cd out && sha256sum * > sha256sums.txt)
+          ls -lh out
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NightKernel-${{ inputs.version }}
+          path: |
+            out/*
+            build.log
+
+      - name: Release
+        if: inputs.release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: NightKernel Zero+ ${{ inputs.version }}
+          target_commitish: ${{ inputs.branch }}
+          prerelease: true
+          files: out/*
