@@ -89,6 +89,71 @@ static unsigned int normalized_sysctl_sched_wakeup_granularity	= 1000000UL;
 
 const_debug unsigned int sysctl_sched_migration_cost	= 500000UL;
 
+#ifdef CONFIG_SCHED_BORE
+unsigned int __read_mostly sched_bore = 1;
+unsigned int __read_mostly sched_burst_smoothness_long = 1;
+unsigned int __read_mostly sched_burst_smoothness_short = 0;
+unsigned int __read_mostly sched_burst_penalty_offset = 22;
+unsigned int __read_mostly sched_burst_penalty_scale = 1280;
+
+#define BORE_MAX_BURST_PENALTY (39U << 2)
+
+static inline u32 bore_log2plus1_u64_u32f8(u64 v)
+{
+	u32 msb = fls64(v);
+	s32 excess_bits = msb - 9;
+	u8 fractional = (excess_bits >= 0) ? (v >> excess_bits) : (v << -excess_bits);
+	return (msb << 8) | fractional;
+}
+
+static inline void bore_update_curr(struct task_struct *p, u64 delta_exec)
+{
+	u32 greed, tolerance, penalty, scaled_penalty;
+	u64 burst_time;
+	u8 prio, prev_prio, new_prio;
+
+	p->bore.burst_time_ns = (u32)min_t(u64, (u64)p->bore.burst_time_ns + delta_exec, U32_MAX);
+	burst_time = p->bore.burst_time_ns;
+
+	greed = bore_log2plus1_u64_u32f8(burst_time);
+	tolerance = sched_burst_penalty_offset << 8;
+	penalty = max(0, (s32)greed - (s32)tolerance);
+	scaled_penalty = penalty * sched_burst_penalty_scale >> 16;
+	p->bore.burst_penalty = min_t(u32, BORE_MAX_BURST_PENALTY, max_t(u32, p->bore.prev_burst_penalty, scaled_penalty));
+
+	prio = p->static_prio - MAX_RT_PRIO;
+	prev_prio = min_t(u8, 39, prio + p->bore.burst_score);
+	p->bore.burst_score = p->bore.burst_penalty >> 2;
+	new_prio = min_t(u8, 39, prio + p->bore.burst_score);
+
+	if (new_prio != prev_prio)
+		reweight_task(p, new_prio);
+}
+
+static inline void bore_dequeue_sleep(struct task_struct *p)
+{
+	u32 old = p->bore.prev_burst_penalty;
+	u32 curr_pen = p->bore.burst_penalty;
+	int diff = (int)curr_pen - (int)old;
+	u32 smoothed;
+
+	if (diff >= 0)
+		smoothed = old + (diff >> (int)sched_burst_smoothness_long);
+	else
+		smoothed = old - ((-diff) >> (int)sched_burst_smoothness_short);
+
+	p->bore.prev_burst_penalty = (u8)min_t(u32, smoothed, 255);
+	p->bore.burst_penalty = p->bore.prev_burst_penalty;
+	p->bore.burst_time_ns = 0;
+	p->bore.burst_score = p->bore.burst_penalty >> 2;
+}
+
+static inline void bore_yield(struct task_struct *p)
+{
+	bore_dequeue_sleep(p);
+}
+#endif // CONFIG_SCHED_BORE
+
 int sched_thermal_decay_shift;
 static int __init setup_sched_thermal_decay_shift(char *str)
 {
@@ -861,6 +926,10 @@ static void update_curr(struct cfs_rq *cfs_rq)
 		trace_sched_stat_runtime(curtask, delta_exec, curr->vruntime);
 		cgroup_account_cputime(curtask, delta_exec);
 		account_group_exec_runtime(curtask, delta_exec);
+#ifdef CONFIG_SCHED_BORE
+		if (sched_bore)
+			bore_update_curr(curtask, delta_exec);
+#endif
 	}
 
 	account_cfs_rq_runtime(cfs_rq, delta_exec);
@@ -5937,6 +6006,11 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 
 	util_est_dequeue(&rq->cfs, p);
 
+#ifdef CONFIG_SCHED_BORE
+	if (sched_bore && task_sleep)
+		bore_dequeue_sleep(p);
+#endif
+
 	for_each_sched_entity(se) {
 		cfs_rq = cfs_rq_of(se);
 		dequeue_entity(cfs_rq, se, flags);
@@ -7764,6 +7838,11 @@ static void yield_task_fair(struct rq *rq)
 		return;
 
 	clear_buddies(cfs_rq, se);
+
+#ifdef CONFIG_SCHED_BORE
+	if (sched_bore)
+		bore_yield(curr);
+#endif
 
 	if (curr->policy != SCHED_BATCH) {
 		update_rq_clock(rq);

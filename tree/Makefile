@@ -1004,6 +1004,15 @@ endif
 endif
 endif
 
+# NightKernel Zero+: Otimização poliedral de localidade de cache e vetorização via LLVM Polly
+POLLY_FLAGS := -mllvm -polly \
+               -mllvm -polly-ast-use-context \
+               -mllvm -polly-invariant-load-hoisting \
+               -mllvm -polly-opt-fusion=max \
+               -mllvm -polly-run-inliner \
+               -mllvm -polly-vectorizer=stripmine
+KBUILD_CFLAGS += $(call cc-option,$(POLLY_FLAGS))
+
 ifdef CONFIG_LTO
 KBUILD_CFLAGS	+= -fno-lto $(CC_FLAGS_LTO)
 KBUILD_AFLAGS	+= -fno-lto

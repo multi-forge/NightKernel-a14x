@@ -1302,6 +1302,14 @@ config CHECKPOINT_RESTORE
 
 	  If unsure, say N here.
 
+config SCHED_BORE
+	bool "Burst-Oriented Response Enhancer (BORE) CPU Scheduler"
+	default y
+	help
+	  In CFS, tasks that run for short bursts (UI, audio, gaming frames)
+	  are prioritized over batch workloads. BORE measures burstiness
+	  and dynamically rewards interactive tasks.
+
 config SCHED_AUTOGROUP
 	bool "Automatic process group scheduling"
 	select CGROUPS

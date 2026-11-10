@@ -21,8 +21,8 @@
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
 
-/* Dynamic Fsync implementation for NightKernel */
-static bool dyn_fsync_active = true;
+/* Dynamic Fsync implementation for NightKernel (default: disabled, toggleable via sysfs) */
+static bool dyn_fsync_active = false;
 
 static ssize_t dyn_fsync_active_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {

@@ -49,6 +49,14 @@ extern unsigned int sysctl_sched_cfs_bandwidth_slice;
 extern unsigned int sysctl_sched_autogroup_enabled;
 #endif
 
+#ifdef CONFIG_SCHED_BORE
+extern unsigned int sched_bore;
+extern unsigned int sched_burst_penalty_offset;
+extern unsigned int sched_burst_penalty_scale;
+extern unsigned int sched_burst_smoothness_long;
+extern unsigned int sched_burst_smoothness_short;
+#endif
+
 extern int sysctl_sched_rr_timeslice;
 extern int sched_rr_timeslice;
 

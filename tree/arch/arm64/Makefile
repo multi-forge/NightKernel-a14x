@@ -44,6 +44,9 @@ KBUILD_AFLAGS	+= $(compat_vdso)
 KBUILD_CFLAGS	+= $(call cc-option,-mabi=lp64)
 KBUILD_AFLAGS	+= $(call cc-option,-mabi=lp64)
 
+# NightKernel Zero+: Otimização de instruções nativas para Exynos 1330 (2x Cortex-A78 + 6x Cortex-A55)
+KBUILD_CFLAGS	+= -march=armv8.2-a+crypto+fp16+dotprod+rcpc -mtune=cortex-a78
+
 # Avoid generating .eh_frame* sections.
 KBUILD_CFLAGS	+= -fno-asynchronous-unwind-tables -fno-unwind-tables
 KBUILD_AFLAGS	+= -fno-asynchronous-unwind-tables -fno-unwind-tables

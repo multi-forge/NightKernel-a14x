@@ -730,6 +730,15 @@ struct kmap_ctrl {
 #endif
 };
 
+#ifdef CONFIG_SCHED_BORE
+struct bore_task_data {
+	u32 burst_time_ns;
+	u16 burst_penalty;
+	u8  prev_burst_penalty;
+	u8  burst_score;
+};
+#endif
+
 struct task_struct {
 #ifdef CONFIG_THREAD_INFO_IN_TASK
 	/*
@@ -1513,7 +1522,11 @@ struct task_struct {
 	struct callback_head		l1d_flush_kill;
 #endif
 
+#ifdef CONFIG_SCHED_BORE
+	ANDROID_KABI_USE(1, struct bore_task_data bore);
+#else
 	ANDROID_KABI_RESERVE(1);
+#endif
 	ANDROID_KABI_RESERVE(2);
 	ANDROID_KABI_RESERVE(3);
 	ANDROID_KABI_RESERVE(4);

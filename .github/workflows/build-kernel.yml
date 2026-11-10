@@ -103,6 +103,12 @@ jobs:
           scripts/config --enable CONFIG_SLUB_DEBUG
           scripts/config --enable CONFIG_MQ_IOSCHED_DEADLINE --enable CONFIG_DEFAULT_MQ_DEADLINE
           scripts/config --set-str CONFIG_DEFAULT_IOSCHED "mq-deadline"
+          scripts/config --enable CONFIG_SCHED_BORE
+          scripts/config --enable CONFIG_HZ_300 --disable CONFIG_HZ_250 --set-val CONFIG_HZ 300
+          scripts/config --enable CONFIG_RCU_LAZY --enable CONFIG_RCU_NOCB_CPU
+          scripts/config --enable CONFIG_TCP_CONG_BBR --set-str CONFIG_DEFAULT_TCP_CONG "bbr"
+          scripts/config --enable CONFIG_NET_SCH_FQ
+          scripts/config --enable CONFIG_BPF_JIT_ALWAYS_ON
           scripts/config --enable CONFIG_MODULES --enable CONFIG_KPROBES --enable CONFIG_DEBUG_FS --enable CONFIG_CPU_IDLE_GOV_TEO
           make olddefconfig
           ccache -z
