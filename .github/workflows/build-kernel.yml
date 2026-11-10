@@ -27,6 +27,11 @@ jobs:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_MAXSIZE: 4G
       CCACHE_COMPRESS: "1"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_SLOPPINESS: "file_macro,locale,time_macros"
+      KBUILD_BUILD_TIMESTAMP: "Thu Jan  1 00:00:00 UTC 1970"
+      KBUILD_BUILD_USER: "multi-forge"
+      KBUILD_BUILD_HOST: "nightkernel"
     steps:
       - name: Liberar espaço no runner
         run: |
@@ -60,8 +65,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .ccache
-          key: ccache-${{ inputs.branch }}-${{ github.sha }}
-          restore-keys: ccache-${{ inputs.branch }}-
+          key: ccache-${{ inputs.branch }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-${{ inputs.branch }}-
+            ccache-
 
       - name: ReSukiSU + Baseband-guard
         working-directory: tree
@@ -88,25 +95,36 @@ jobs:
           make nightkernel_v1.2_defconfig
           scripts/config --set-str LOCALVERSION "-NightKernel-Zero+"
           scripts/config --enable CONFIG_NTSYNC
+          scripts/config --enable CONFIG_LRU_GEN --enable CONFIG_LRU_GEN_ENABLED
           scripts/config --enable CONFIG_LTO_CLANG_THIN --disable CONFIG_LTO_NONE
-          scripts/config --enable CONFIG_ZRAM_DEF_COMP_LZ4 --disable CONFIG_ZRAM_DEF_COMP_ZSTD
+          scripts/config --enable CONFIG_ZSMALLOC --enable CONFIG_ZRAM
+          scripts/config --enable CONFIG_CRYPTO_LZ4 --enable CONFIG_ZRAM_DEF_COMP_LZ4 --disable CONFIG_ZRAM_DEF_COMP_LZORLE --disable CONFIG_ZRAM_DEF_COMP_ZSTD
+          scripts/config --set-str CONFIG_ZRAM_DEF_COMP "lz4"
+          scripts/config --disable CONFIG_SLUB_DEBUG
           scripts/config --enable CONFIG_MQ_IOSCHED_DEADLINE --enable CONFIG_DEFAULT_MQ_DEADLINE
           scripts/config --set-str CONFIG_DEFAULT_IOSCHED "mq-deadline"
           scripts/config --enable CONFIG_MODULES --enable CONFIG_KPROBES --enable CONFIG_DEBUG_FS --enable CONFIG_CPU_IDLE_GOV_TEO
           make olddefconfig
           ccache -z
+          ccache -s
           set -o pipefail
-          make -j$(( $(nproc) + 2 )) 2>&1 | tee ../build.log
+          make -j$(( $(nproc) + 2 )) CC="ccache clang" HOSTCC="ccache clang" 2>&1 | tee ../build.log
+          echo "=== CCACHE STATS AFTER BUILD ==="
           ccache -s
           ls -lh arch/arm64/boot/Image
 
-      - name: Empacotar (AnyKernel3 + boot.img + Odin tar)
+      - name: Empacotar (AnyKernel3 + boot.img + Odin tar + Modules)
         run: |
           V="${{ inputs.version }}"
-          mkdir -p out
+          mkdir -p out out_modules
           cp tree/arch/arm64/boot/Image out/
           cp tree/arch/arm64/boot/dts/exynos/s5e8535.dtb out/ 2>/dev/null || true
           cp tree/.config out/nightkernel-$V.config
+          find tree -name "*.ko" -exec cp {} out_modules/ \;
+          if ls out_modules/*.ko >/dev/null 2>&1; then
+            $HOME/clang22/bin/llvm-strip --strip-debug out_modules/*.ko 2>/dev/null || true
+            tar -czf out/modules-NightKernel-Zero+-$V-a14x.tar.gz -C out_modules .
+          fi
           git clone --depth=1 https://github.com/osm0sis/AnyKernel3 ak3
           cp out/Image ak3/
           [ -f scripts/00-nightkernel-optimizer.sh ] && cp scripts/00-nightkernel-optimizer.sh ak3/
