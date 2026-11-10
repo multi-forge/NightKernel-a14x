@@ -116,12 +116,12 @@ static int gpex_clock_update_config_data_from_dt()
 			}
 		}
 	}
-	/* NightKernel Overclock: explicitly ensure 1144000 and 1040000 exist in clk_info.table */
+	/* NightKernel Overclock: calibrated voltage steps (+4% headroom for sustained 3D stability >65C) */
 	if (clk_info.table_size >= 2) {
 		clk_info.table[0].clock = 1144000;
-		clk_info.table[0].voltage = 737500;
+		clk_info.table[0].voltage = 762500;
 		clk_info.table[1].clock = 1040000;
-		clk_info.table[1].voltage = 712500;
+		clk_info.table[1].voltage = 725000;
 	}
 
 

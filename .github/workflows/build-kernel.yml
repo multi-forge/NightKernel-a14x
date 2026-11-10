@@ -127,6 +127,9 @@ jobs:
           fi
           git clone --depth=1 https://github.com/osm0sis/AnyKernel3 ak3
           cp out/Image ak3/
+          mkdir -p ak3/modules_patch
+          [ -f out_modules/mali_kbase.ko ] && cp out_modules/mali_kbase.ko ak3/modules_patch/
+          [ -f out_modules/exynos-drm.ko ] && cp out_modules/exynos-drm.ko ak3/modules_patch/
           [ -f scripts/00-nightkernel-optimizer.sh ] && cp scripts/00-nightkernel-optimizer.sh ak3/
           cat > ak3/anykernel.sh << 'EOF'
           properties() { '
@@ -152,6 +155,34 @@ jobs:
           . tools/ak3-core.sh;
           split_boot;
           flash_boot;
+          VB="";
+          for p in /dev/block/by-name/vendor_boot /dev/block/bootdevice/by-name/vendor_boot /dev/block/platform/*/by-name/vendor_boot; do
+            [ -e "$p" ] && VB="$p" && break;
+          done;
+          if [ -n "$VB" -a -f "$home/modules_patch/mali_kbase.ko" ]; then
+            ui_print " ";
+            ui_print "Patching vendor_boot DLKM (Mali 1.144GHz OC)...";
+            VB_DIR=$home/vb_work;
+            mkdir -p $VB_DIR;
+            cd $VB_DIR;
+            $home/tools/magiskboot unpack -h $VB >/dev/null 2>&1 || true;
+            if [ -f vendor_ramdisk/dlkm.cpio ]; then
+              $home/tools/magiskboot cpio vendor_ramdisk/dlkm.cpio "add 0644 lib/modules/mali_kbase.ko $home/modules_patch/mali_kbase.ko" >/dev/null 2>&1;
+              [ -f "$home/modules_patch/exynos-drm.ko" ] && $home/tools/magiskboot cpio vendor_ramdisk/dlkm.cpio "add 0644 lib/modules/exynos-drm.ko $home/modules_patch/exynos-drm.ko" >/dev/null 2>&1;
+              $home/tools/magiskboot repack $VB new-vendor_boot.img >/dev/null 2>&1;
+              if [ -f new-vendor_boot.img ]; then
+                cat new-vendor_boot.img > $VB;
+                sync;
+                ui_print "vendor_boot DLKM successfully patched!";
+              else
+                ui_print "Warning: vendor_boot repack failed, keeping original";
+              fi;
+            else
+              ui_print "Warning: vendor_ramdisk/dlkm.cpio not found";
+            fi;
+            cd $home;
+            rm -rf $VB_DIR;
+          fi;
           if [ -f $home/00-nightkernel-optimizer.sh ]; then
             mount /data 2>/dev/null || true;
             mkdir -p /data/adb/service.d;
