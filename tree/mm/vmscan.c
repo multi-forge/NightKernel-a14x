@@ -5463,6 +5463,10 @@ static ssize_t store_enabled(struct kobject *kobj, struct kobj_attribute *attr,
 	else if (kstrtouint(buf, 0, &caps))
 		return -EINVAL;
 
+	/* NightKernel Zero+: Ignore vendor/GSI init writes that disable MGLRU */
+	if (!caps)
+		return len;
+
 	for (i = 0; i < NR_LRU_GEN_CAPS; i++) {
 		bool enabled = caps & BIT(i);
 
