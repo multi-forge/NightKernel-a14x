@@ -59,7 +59,7 @@ static DEFINE_IDR(zram_index_idr);
 static DEFINE_MUTEX(zram_index_mutex);
 
 static int zram_major;
-static const char *default_compressor = "lzo-rle";
+static const char *default_compressor = "lz4";
 
 static bool is_lzorle;
 static unsigned char lzo_marker[4] = {0x11, 0x00, 0x00};
@@ -2581,6 +2581,11 @@ static ssize_t comp_algorithm_store(struct device *dev,
 	sz = strlen(compressor);
 	if (sz > 0 && compressor[sz - 1] == '\n')
 		compressor[sz - 1] = 0x00;
+
+	/* NightKernel Zero+: Redirect legacy vendor lzo/lzo-rle requests to lz4 */
+	if ((!strcmp(compressor, "lzo-rle") || !strcmp(compressor, "lzo")) &&
+	    zcomp_available_algorithm("lz4"))
+		strlcpy(compressor, "lz4", sizeof(compressor));
 
 	if (!zcomp_available_algorithm(compressor))
 		return -EINVAL;
