@@ -13,10 +13,28 @@ log "=================================================="
 log "=== NightKernel Zero+ Optimizer Service Starting ==="
 log "=================================================="
 
+# 0. Ensure early kernel node permissions and MGLRU state
+if [ -e /dev/ntsync ]; then
+    chmod 0666 /dev/ntsync 2>/dev/null || true
+    chcon u:object_r:gpu_device:s0 /dev/ntsync 2>/dev/null || true
+fi
+if [ -e /sys/kernel/mm/lru_gen/enabled ]; then
+    echo y > /sys/kernel/mm/lru_gen/enabled 2>/dev/null || true
+fi
+
 # 1. Wait for Android boot completion and PackageManager availability
 while [ "$(getprop sys.boot_completed)" != "1" ]; do
     sleep 2
 done
+
+# Re-apply after Android init/ueventd coldboot finishes
+if [ -e /dev/ntsync ]; then
+    chmod 0666 /dev/ntsync 2>/dev/null || true
+    chcon u:object_r:gpu_device:s0 /dev/ntsync 2>/dev/null || true
+fi
+if [ -e /sys/kernel/mm/lru_gen/enabled ]; then
+    echo y > /sys/kernel/mm/lru_gen/enabled 2>/dev/null || true
+fi
 
 while ! pm path android >/dev/null 2>&1; do
     sleep 2
