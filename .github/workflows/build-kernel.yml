@@ -97,10 +97,10 @@ jobs:
           scripts/config --enable CONFIG_NTSYNC
           scripts/config --enable CONFIG_LRU_GEN --enable CONFIG_LRU_GEN_ENABLED
           scripts/config --enable CONFIG_LTO_CLANG_THIN --disable CONFIG_LTO_NONE
-          scripts/config --enable CONFIG_ZSMALLOC --enable CONFIG_ZRAM
+          scripts/config --module CONFIG_ZSMALLOC --module CONFIG_ZRAM
           scripts/config --enable CONFIG_CRYPTO_LZ4 --enable CONFIG_ZRAM_DEF_COMP_LZ4 --disable CONFIG_ZRAM_DEF_COMP_LZORLE --disable CONFIG_ZRAM_DEF_COMP_ZSTD
           scripts/config --set-str CONFIG_ZRAM_DEF_COMP "lz4"
-          scripts/config --disable CONFIG_SLUB_DEBUG
+          scripts/config --enable CONFIG_SLUB_DEBUG
           scripts/config --enable CONFIG_MQ_IOSCHED_DEADLINE --enable CONFIG_DEFAULT_MQ_DEADLINE
           scripts/config --set-str CONFIG_DEFAULT_IOSCHED "mq-deadline"
           scripts/config --enable CONFIG_MODULES --enable CONFIG_KPROBES --enable CONFIG_DEBUG_FS --enable CONFIG_CPU_IDLE_GOV_TEO
