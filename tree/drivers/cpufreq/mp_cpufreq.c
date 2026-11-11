@@ -43,9 +43,26 @@ static void init_cluster_tables(void)
 {
 	mutex_lock(&mp_lock);
 	if (!cl0_table_size) {
-		cl0_table_size = cal_dfs_get_rate_asv_table(CPUCL0_CAL_ID, cl0_table);
+		struct cpufreq_policy *policy0 = cpufreq_cpu_get(0);
+		if (policy0) {
+			if (policy0->freq_table) {
+				struct cpufreq_frequency_table *pos;
+				int idx = 0;
+				cpufreq_for_each_valid_entry(pos, policy0->freq_table) {
+					if (idx < 48) {
+						cl0_table[idx].rate = pos->frequency;
+						cl0_table[idx].volt = 762500 - (idx * 12500);
+						if (cl0_table[idx].volt < 550000)
+							cl0_table[idx].volt = 550000;
+						idx++;
+					}
+				}
+				cl0_table_size = idx;
+			}
+			cpufreq_cpu_put(policy0);
+		}
 		if (!cl0_table_size) {
-			/* Fallback Little cluster defaults if CAL not yet populated */
+			/* Fallback Little cluster defaults if cpufreq not yet populated */
 			static const unsigned int cl0_default_freqs[] = {
 				2002000, 1920000, 1824000, 1728000, 1632000, 1536000,
 				1440000, 1344000, 1248000, 1152000, 1056000, 960000,
@@ -63,7 +80,24 @@ static void init_cluster_tables(void)
 	}
 
 	if (!cl1_table_size) {
-		cl1_table_size = cal_dfs_get_rate_asv_table(CPUCL1_CAL_ID, cl1_table);
+		struct cpufreq_policy *policy6 = cpufreq_cpu_get(6);
+		if (policy6) {
+			if (policy6->freq_table) {
+				struct cpufreq_frequency_table *pos;
+				int idx = 0;
+				cpufreq_for_each_valid_entry(pos, policy6->freq_table) {
+					if (idx < 48) {
+						cl1_table[idx].rate = pos->frequency;
+						cl1_table[idx].volt = 925000 - (idx * 12500);
+						if (cl1_table[idx].volt < 575000)
+							cl1_table[idx].volt = 575000;
+						idx++;
+					}
+				}
+				cl1_table_size = idx;
+			}
+			cpufreq_cpu_put(policy6);
+		}
 		if (!cl1_table_size) {
 			/* Fallback Big cluster defaults */
 			static const unsigned int cl1_default_freqs[] = {
