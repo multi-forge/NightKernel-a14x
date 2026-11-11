@@ -141,7 +141,6 @@ jobs:
           mkdir -p ak3/modules_patch
           [ -f out_modules/mali_kbase.ko ] && cp out_modules/mali_kbase.ko ak3/modules_patch/
           [ -f out_modules/exynos-drm.ko ] && cp out_modules/exynos-drm.ko ak3/modules_patch/
-          [ -f out_modules/exynos_devfreq.ko ] && cp out_modules/exynos_devfreq.ko ak3/modules_patch/
           [ -f scripts/00-nightkernel-optimizer.sh ] && cp scripts/00-nightkernel-optimizer.sh ak3/
           cat > ak3/anykernel.sh << 'EOF'
           properties() { '
@@ -181,7 +180,6 @@ jobs:
             if [ -f vendor_ramdisk/dlkm.cpio ]; then
               $home/tools/magiskboot cpio vendor_ramdisk/dlkm.cpio "add 0644 lib/modules/mali_kbase.ko $home/modules_patch/mali_kbase.ko" >/dev/null 2>&1;
               [ -f "$home/modules_patch/exynos-drm.ko" ] && $home/tools/magiskboot cpio vendor_ramdisk/dlkm.cpio "add 0644 lib/modules/exynos-drm.ko $home/modules_patch/exynos-drm.ko" >/dev/null 2>&1;
-              [ -f "$home/modules_patch/exynos_devfreq.ko" ] && $home/tools/magiskboot cpio vendor_ramdisk/dlkm.cpio "add 0644 lib/modules/exynos_devfreq.ko $home/modules_patch/exynos_devfreq.ko" >/dev/null 2>&1;
               $home/tools/magiskboot repack $VB new-vendor_boot.img >/dev/null 2>&1;
               if [ -f new-vendor_boot.img ]; then
                 cat new-vendor_boot.img > $VB;
