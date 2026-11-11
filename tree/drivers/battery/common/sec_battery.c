@@ -63,6 +63,12 @@ static char __read_mostly *f_mode;
 module_param(f_mode, charp, 0444);
 #endif
 
+/* HKTweaks Store Mode / Direct Charging Compatibility */
+static unsigned int store_mode_max = 80;
+module_param(store_mode_max, uint, 0644);
+static unsigned int store_mode_min = 70;
+module_param(store_mode_min, uint, 0644);
+
 static const char *sec_voter_name[] = {
 	FOREACH_VOTER(GENERATE_STRING)
 };
@@ -4215,6 +4221,11 @@ static void sec_bat_check_store_mode(struct sec_battery_info *battery)
 			sec_vote(battery->input_vote, VOTER_STORE_MODE, true,
 				mA_by_mWmV(battery->pdata->store_mode_max_input_power, battery->input_voltage));
 		}
+
+		if (store_mode_max)
+			battery->pdata->store_mode_charging_max = store_mode_max;
+		if (store_mode_min)
+			battery->pdata->store_mode_charging_min = store_mode_min;
 
 		if (battery->capacity >= battery->pdata->store_mode_charging_max) {
 			int chg_mode = SEC_BAT_CHG_MODE_CHARGING_OFF;
@@ -9493,6 +9504,23 @@ static int sec_battery_probe(struct platform_device *pdev)
 		dev_err(battery->dev,
 			"%s : Failed to sec_bat_create_attrs\n", __func__);
 		goto err_req_irq;
+	}
+
+	/* HKTweaks Store Mode compatibility: /sys/devices/battery/power_supply/battery */
+	{
+		struct kobject *devices_kobj = &pdev->dev.kobj;
+		while (devices_kobj && devices_kobj->parent && strcmp(devices_kobj->name, "devices"))
+			devices_kobj = devices_kobj->parent;
+
+		if (devices_kobj && !strcmp(devices_kobj->name, "devices")) {
+			struct kobject *compat_bat = kobject_create_and_add("battery", devices_kobj);
+			if (compat_bat) {
+				struct kobject *compat_ps = kobject_create_and_add("power_supply", compat_bat);
+				if (compat_ps) {
+					sysfs_create_link(compat_ps, &battery->psy_bat->dev.kobj, "battery");
+				}
+			}
+		}
 	}
 
 	ret = sec_pogo_create_attrs(&battery->psy_pogo->dev);

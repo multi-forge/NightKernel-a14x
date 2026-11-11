@@ -2600,6 +2600,9 @@ ssize_t sec_bat_store_attrs(
 #if !defined(CONFIG_SEC_FACTORY)
 			if (x) {
 				battery->store_mode = true;
+				sec_bat_set_current_event(battery, SEC_BAT_CURRENT_EVENT_SLATE, SEC_BAT_CURRENT_EVENT_SLATE);
+				sec_vote(battery->chgen_vote, VOTER_STORE_MODE, true, SEC_BAT_CHG_MODE_BUCK_OFF);
+				sec_bat_set_charging_status(battery, POWER_SUPPLY_STATUS_DISCHARGING);
 				__pm_stay_awake(battery->parse_mode_dt_ws);
 				queue_delayed_work(battery->monitor_wqueue,
 					&battery->parse_mode_dt_work, 0);
@@ -2610,6 +2613,15 @@ ssize_t sec_bat_store_attrs(
 				psy_do_property(battery->pdata->charger_name, set,
 					POWER_SUPPLY_EXT_PROP_CHANGE_CHARGING_SOURCE, value);
 #endif
+			} else {
+				battery->store_mode = false;
+				battery->display_test = false;
+				sec_bat_set_current_event(battery, 0, SEC_BAT_CURRENT_EVENT_SLATE);
+				sec_vote(battery->chgen_vote, VOTER_STORE_MODE, false, 0);
+				sec_bat_set_charging_status(battery, POWER_SUPPLY_STATUS_CHARGING);
+				__pm_stay_awake(battery->monitor_ws);
+				queue_delayed_work(battery->monitor_wqueue,
+					&battery->monitor_work, 0);
 			}
 #endif
 			ret = count;

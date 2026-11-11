@@ -142,6 +142,27 @@ apply_nextgen_performance_tunables() {
     write_val /sys/kernel/gpu/gpu_max_clock 1144000
     write_val /sys/kernel/gpu/gpu_min_clock 208000
 
+    # --------------------------------------------------------------------------
+    # 7. Barramento MIF (Memoria) com Base em 2.288 GHz & Carregamento Direto
+    # --------------------------------------------------------------------------
+    mount -t debugfs none /sys/kernel/debug 2>/dev/null || true
+    if [ -d /sys/kernel/debug/vclk ]; then
+        echo 0xb040000 > /sys/kernel/debug/vclk/dvfs_domain 2>/dev/null || true
+        echo 2288000 > /sys/kernel/debug/vclk/set_freq 2>/dev/null || true
+    fi
+    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 2288000
+    write_val /sys/class/devfreq/17000010.devfreq_mif/exynos_data/debug_scaling_devfreq_min 2288000
+
+    if [ -e /sys/devices/battery/power_supply/battery/store_mode ]; then
+        chmod 0664 /sys/devices/battery/power_supply/battery/store_mode 2>/dev/null || true
+    fi
+    if [ -e /sys/class/power_supply/battery/store_mode ]; then
+        chmod 0664 /sys/class/power_supply/battery/store_mode 2>/dev/null || true
+    fi
+    if [ -e /sys/class/power_supply/battery/batt_slate_mode ]; then
+        chmod 0664 /sys/class/power_supply/battery/batt_slate_mode 2>/dev/null || true
+    fi
+
     log "[+] Next-Gen Performance tunables applied successfully."
 }
 

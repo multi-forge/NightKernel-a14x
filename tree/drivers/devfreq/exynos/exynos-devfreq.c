@@ -787,6 +787,11 @@ static int exynos_devfreq_init_freq_table(struct exynos_devfreq_data *data)
 	dev_info(data->dev, "max_freq: %uKhz, get_max_freq: %uKhz\n",
 			data->max_freq, max_freq);
 
+	if (data->dfs_id == 0xb040000) {
+		if (max_freq < 2730000)
+			max_freq = 2730000;
+	}
+
 	if (max_freq < data->max_freq) {
 		flags |= DEVFREQ_FLAG_LEAST_UPPER_BOUND;
 		tmp_max = (unsigned long)max_freq;
@@ -808,6 +813,12 @@ static int exynos_devfreq_init_freq_table(struct exynos_devfreq_data *data)
 	if (!min_freq) {
 		dev_err(data->dev, "failed get min frequency\n");
 		return -EINVAL;
+	}
+
+	if (data->dfs_id == 0xb040000) {
+		/* Enforce 2.288 GHz as baseline MIF memory clock */
+		min_freq = 2288000;
+		data->min_freq = 2288000;
 	}
 
 	dev_info(data->dev, "min_freq: %uKhz, get_min_freq: %uKhz\n",
