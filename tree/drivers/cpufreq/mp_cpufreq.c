@@ -118,7 +118,6 @@ static ssize_t cluster0_volt_table_store(struct kobject *kobj, struct kobj_attri
 	for (i = 0; i < cl0_table_size; i++) {
 		if (cl0_table[i].rate == freq) {
 			cl0_table[i].volt = volt;
-			cal_dfs_set_volt(CPUCL0_CAL_ID, freq, volt);
 			pr_info("mp-cpufreq: updated CL0 %u kHz to %u uV\n", freq, volt);
 			break;
 		}
@@ -161,7 +160,6 @@ static ssize_t cluster1_volt_table_store(struct kobject *kobj, struct kobj_attri
 	for (i = 0; i < cl1_table_size; i++) {
 		if (cl1_table[i].rate == freq) {
 			cl1_table[i].volt = volt;
-			cal_dfs_set_volt(CPUCL1_CAL_ID, freq, volt);
 			pr_info("mp-cpufreq: updated CL1 %u kHz to %u uV\n", freq, volt);
 			break;
 		}
@@ -212,7 +210,7 @@ static ssize_t cluster1_all_cores_max_freq_store(struct kobject *kobj, struct ko
 		struct cpufreq_policy *policy = cpufreq_cpu_get(6);
 		cluster1_max_freq = freq;
 		if (policy) {
-			policy->user_policy.max = freq;
+			policy->max = freq;
 			cpufreq_update_policy(6);
 			cpufreq_cpu_put(policy);
 		}
