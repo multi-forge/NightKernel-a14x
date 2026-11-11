@@ -144,7 +144,7 @@ jobs:
           [ -f scripts/00-nightkernel-optimizer.sh ] && cp scripts/00-nightkernel-optimizer.sh ak3/
           cat > ak3/anykernel.sh << 'EOF'
           properties() { '
-          kernel.string=NightKernel Zero+ by Multi-Forge
+          kernel.string=NightKernel Eclipse by Multi-Forge
           do.devicecheck=1
           do.modules=0
           do.systemless=1
@@ -172,7 +172,7 @@ jobs:
           done;
           if [ -n "$VB" -a -f "$home/modules_patch/mali_kbase.ko" ]; then
             ui_print " ";
-            ui_print "Patching vendor_boot DLKM (Mali 1.144GHz OC)...";
+            ui_print "Patching vendor_boot DLKM (Mali 949MHz OC)...";
             VB_DIR=$home/vb_work;
             mkdir -p $VB_DIR;
             cd $VB_DIR;
@@ -202,10 +202,12 @@ jobs:
           fi;
           EOF
           sed -i 's/^          //' ak3/anykernel.sh
-          (cd ak3 && zip -r9 ../out/NightKernel-Zero+-$V-a14x.zip * -x .git README.md '*placeholder')
+          (cd ak3 && zip -r9 ../out/NightKernel-Eclipse-$V-a14x.zip * -x .git README.md '*placeholder')
+          cp out/NightKernel-Eclipse-$V-a14x.zip out/NightKernel-Zero+-$V-a14x.zip 2>/dev/null || true
           git clone --depth=1 -b lineage-22.1 https://github.com/LineageOS/android_system_tools_mkbootimg mkbootimg
           python3 mkbootimg/mkbootimg.py --kernel out/Image --header_version 4 --os_version 15.0.0 --os_patch_level 2026-09 --output out/boot.img
-          tar -cvf out/boot-NightKernel-Zero+-$V-a146m.tar -C out boot.img
+          tar -cvf out/boot-NightKernel-Eclipse-$V-a146m.tar -C out boot.img
+          cp out/boot-NightKernel-Eclipse-$V-a146m.tar out/boot-NightKernel-Zero+-$V-a146m.tar 2>/dev/null || true
           cp build.log out/
           (cd out && sha256sum * > sha256sums.txt)
           ls -lh out
@@ -224,7 +226,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.version }}
-          name: NightKernel Zero+ ${{ inputs.version }}
+          name: NightKernel Eclipse ${{ inputs.version }}
           target_commitish: ${{ inputs.branch }}
           prerelease: true
           files: out/*
