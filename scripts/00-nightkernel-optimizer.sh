@@ -140,28 +140,25 @@ apply_nextgen_performance_tunables() {
     fi
 
     # --------------------------------------------------------------------------
-    # 7. Persistencia de Nos Criticos (/dev/ntsync) & Teto GPU (1.144 GHz)
+    # 7. Persistencia de Nos Criticos (/dev/ntsync) & Teto GPU (949 MHz)
     # --------------------------------------------------------------------------
     if [ -e /dev/ntsync ]; then
         chmod 0666 /dev/ntsync 2>/dev/null || true
         chcon u:object_r:gpu_device:s0 /dev/ntsync 2>/dev/null || true
     fi
 
-    write_val /sys/kernel/gpu/gpu_max_clock 1144000
+    write_val /sys/kernel/gpu/gpu_max_clock 949000
     write_val /sys/kernel/gpu/gpu_min_clock 208000
-    write_val /sys/devices/platform/10300000.mali/max_clock 1144000
+    write_val /sys/devices/platform/10300000.mali/max_clock 949000
     write_val /sys/devices/platform/10300000.mali/min_clock 208000
 
     # --------------------------------------------------------------------------
-    # 8. Barramento MIF (Memoria) com Base em 2.288 GHz & Carregamento Direto
+    # 8. Barramento MIF (Memoria) - Escalonamento Dinamico Validado
     # --------------------------------------------------------------------------
-    mount -t debugfs none /sys/kernel/debug 2>/dev/null || true
-    if [ -d /sys/kernel/debug/vclk ]; then
-        echo 0xb040000 > /sys/kernel/debug/vclk/dvfs_domain 2>/dev/null || true
-        echo 2288000 > /sys/kernel/debug/vclk/set_freq 2>/dev/null || true
-    fi
-    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 2288000
-    write_val /sys/class/devfreq/17000010.devfreq_mif/exynos_data/debug_scaling_devfreq_min 2288000
+    write_val /sys/class/devfreq/17000010.devfreq_mif/governor simple_ondemand 2>/dev/null || true
+    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 421000
+    write_val /sys/class/devfreq/17000010.devfreq_mif/max_freq 2093000
+    write_val /sys/class/devfreq/17000010.devfreq_mif/exynos_data/debug_scaling_devfreq_min 421000
 
     # --------------------------------------------------------------------------
     # 9. HKTweaks Symlinks & Node Permissions
@@ -286,28 +283,37 @@ log "[i] Safety Preserved: com.samsung.android.game.gametools"
                     write_val /sys/devices/system/cpu/cpu6/cpufreq/scaling_governor schedutil
                     write_val /sys/kernel/gpu/gpu_max_clock 949000
                     write_val /sys/devices/platform/10300000.mali/max_clock 949000
-                    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 2288000
+                    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 421000
+                    write_val /sys/class/devfreq/17000010.devfreq_mif/max_freq 2093000
+                    cmd wifi force-low-latency-mode disabled 2>/dev/null || true
                     ;;
                 1) # Performance
                     write_val /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor schedutil
                     write_val /sys/devices/system/cpu/cpu6/cpufreq/scaling_governor performance
-                    write_val /sys/kernel/gpu/gpu_max_clock 1144000
-                    write_val /sys/devices/platform/10300000.mali/max_clock 1144000
-                    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 2288000
+                    write_val /sys/kernel/gpu/gpu_max_clock 949000
+                    write_val /sys/devices/platform/10300000.mali/max_clock 949000
+                    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 1014000
+                    write_val /sys/class/devfreq/17000010.devfreq_mif/max_freq 2093000
+                    cmd wifi force-low-latency-mode enabled 2>/dev/null || true
                     ;;
                 2) # Battery
                     write_val /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor powersave
                     write_val /sys/devices/system/cpu/cpu6/cpufreq/scaling_governor powersave
                     write_val /sys/kernel/gpu/gpu_max_clock 611000
                     write_val /sys/devices/platform/10300000.mali/max_clock 611000
-                    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 1541000
+                    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 421000
+                    write_val /sys/class/devfreq/17000010.devfreq_mif/max_freq 1541000
+                    cmd wifi force-low-latency-mode disabled 2>/dev/null || true
                     ;;
                 3) # Gaming
                     write_val /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor performance
                     write_val /sys/devices/system/cpu/cpu6/cpufreq/scaling_governor performance
-                    write_val /sys/kernel/gpu/gpu_max_clock 1144000
-                    write_val /sys/devices/platform/10300000.mali/max_clock 1144000
-                    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 2288000
+                    write_val /sys/kernel/gpu/gpu_max_clock 949000
+                    write_val /sys/devices/platform/10300000.mali/max_clock 949000
+                    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 1352000
+                    write_val /sys/class/devfreq/17000010.devfreq_mif/max_freq 2093000
+                    write_val /sys/class/devfreq/17000000.devfreq_dsu/min_freq 1440000 2>/dev/null || true
+                    cmd wifi force-low-latency-mode enabled 2>/dev/null || true
                     ;;
             esac
         fi

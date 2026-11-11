@@ -11,16 +11,3 @@ index 8a8a49b28b96..52336ca48896 100644
  module_param(use_spi_crc, bool, 0);
  
  static int mmc_schedule_delayed_work(struct delayed_work *work,
-diff --git a/kernel/module.c b/kernel/module.c
-index 6ff30720c722..29881f78a23c 100644
---- a/kernel/module.c
-+++ b/kernel/module.c
-@@ -1317,7 +1317,7 @@ static int check_version(const struct load_info *info,
- bad_version:
- 	pr_warn("%s: disagrees about version of symbol %s\n",
- 	       info->name, symname);
--	return 0;
-+	return 1;
- }
- 
- static inline int check_modstruct_version(const struct load_info *info,
