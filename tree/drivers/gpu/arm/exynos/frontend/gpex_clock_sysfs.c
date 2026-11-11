@@ -515,7 +515,6 @@ GPEX_STATIC ssize_t set_volt_table(const char *buf, size_t count)
 	idx = gpex_clock_get_table_idx(clock);
 	if (idx >= 0 && idx < clk_info->table_size) {
 		clk_info->table[idx].voltage = volt;
-		cal_dfs_set_volt(clk_info->cal_id, clock, volt);
 	}
 	return count;
 }
