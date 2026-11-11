@@ -2929,6 +2929,25 @@ static int exynos_tmu_parse_ect(struct exynos_tmu_data *data)
 		for (i = 0; i < function->num_of_range; ++i) {
 			temperature = function->range_list[i].lower_bound_temperature;
 			freq = function->range_list[i].max_frequency;
+
+			/* NightKernel: Relax premature throttling trip points */
+			if (!strcasecmp(tz->type, "G3D")) {
+				if (i == 1 && temperature < 72)
+					temperature = 72;
+				else if (i == 2 && temperature < 82)
+					temperature = 82;
+			} else if (!strcasecmp(tz->type, "BIG")) {
+				if (i == 1 && temperature < 78)
+					temperature = 78;
+				else if (i == 2 && temperature < 90)
+					temperature = 90;
+			} else if (!strcasecmp(tz->type, "LITTLE")) {
+				if (i == 1 && temperature < 78)
+					temperature = 78;
+				else if (i == 2 && temperature < 90)
+					temperature = 90;
+			}
+
 			tz->ops->set_trip_temp(tz, i, temperature  * MCELSIUS);
 
 			pr_info("Parsed From ECT : [%d] Temperature : %d, frequency : %u\n",
@@ -2983,8 +3002,27 @@ static int exynos_tmu_parse_ect(struct exynos_tmu_data *data)
 
 		for (i = 0; i < pidtm_block->num_of_temperature; ++i) {
 			temperature = pidtm_block->temperature_list[i];
+
+			/* NightKernel: Relax premature throttling trip points */
+			if (!strcasecmp(tz->type, "G3D")) {
+				if (i == 1 && temperature < 72)
+					temperature = 72;
+				else if (i == 2 && temperature < 82)
+					temperature = 82;
+			} else if (!strcasecmp(tz->type, "BIG")) {
+				if (i == 1 && temperature < 78)
+					temperature = 78;
+				else if (i == 2 && temperature < 90)
+					temperature = 90;
+			} else if (!strcasecmp(tz->type, "LITTLE")) {
+				if (i == 1 && temperature < 78)
+					temperature = 78;
+				else if (i == 2 && temperature < 90)
+					temperature = 90;
+			}
+
 			tz->ops->set_trip_temp(tz, i, temperature  * MCELSIUS);
-			pr_info("Parsed From ECT : [%d] Temperature : %d\n", i, temperature);
+			pr_info("Parsed From ECT : [%d] Temperature : %d (zone: %s)\n", i, temperature, tz->type);
 		}
 
 		params = data->pi_param;

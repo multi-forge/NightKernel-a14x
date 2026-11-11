@@ -25,8 +25,8 @@ static int percent_margin_table[MAX_MARGIN_ID];
 
 static int margin_mif;
 static int margin_int;
-static int margin_cpucl0 = 0;
-static int margin_cpucl1 = 0;
+static int margin_cpucl0 = -3;
+static int margin_cpucl1 = -2;
 static int margin_cpucl2;
 static int margin_npu;
 static int margin_npu0;
@@ -38,7 +38,7 @@ static int margin_cp_cpu;
 static int margin_cp;
 static int margin_cp_em;
 static int margin_cp_mcw;
-static int margin_g3d = 0;
+static int margin_g3d = -2;
 static int margin_intcam;
 static int margin_cam;
 static int margin_csis;
@@ -557,22 +557,22 @@ int fvmap_init(void __iomem *sram_base)
 	if (sysfs_create_group(kobj, &asv_g_spec_grp))
 		pr_err("Fail to create asv_g_spec group\n");
 
-	/* NightKernel OC: Initialize calibrated safe margins (+4% G3D @ 1144MHz, +2% CPUCL1 @ 2496MHz) */
+	/* NightKernel: Initialize hardware undervolt margins (-2% CPUCL1, -3% CPUCL0, -2% G3D) */
 	{
 		int vid;
-		percent_margin_table[MARGIN_CPUCL1] = 2;
-		percent_margin_table[MARGIN_CPUCL0] = 0;
-		percent_margin_table[MARGIN_G3D] = 4;
+		percent_margin_table[MARGIN_CPUCL1] = -2;
+		percent_margin_table[MARGIN_CPUCL0] = -3;
+		percent_margin_table[MARGIN_G3D] = -2;
 		vid = get_vclk_id_from_margin_id(MARGIN_CPUCL1);
 		if (vid >= 0)
-			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, 2);
+			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, -2);
 		vid = get_vclk_id_from_margin_id(MARGIN_CPUCL0);
 		if (vid >= 0)
-			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, 0);
+			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, -3);
 		vid = get_vclk_id_from_margin_id(MARGIN_G3D);
 		if (vid >= 0)
-			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, 4);
-		pr_info("NightKernel OC: Voltage margins initialized (+4%% G3D 1144MHz, +2%% CPUCL1 2496MHz)\n");
+			cal_dfs_set_volt_margin(vid | ACPM_VCLK_TYPE, -2);
+		pr_info("NightKernel: Hardware undervolt margins initialized (-2%% CPUCL1, -3%% CPUCL0, -2%% G3D)\n");
 	}
 
 	return 0;

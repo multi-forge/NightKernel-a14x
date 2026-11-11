@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Samsung Exynos mp-cpufreq Compatibility Driver for HKTweaks
+ * Samsung Exynos mp-cpufreq Compatibility & Hardware Tuning Driver
  *
- * Exposes cluster0_volt_table, cluster1_volt_table, cpu_dvfs_mode_control,
- * cluster1_all_cores_max_freq, and /sys/power/little_thermal_temp
- * for complete HKTweaks kernel control support.
+ * Implements direct in-kernel hardware undervolt (ACPM IPC) and thermal
+ * throttling relaxation for Samsung Galaxy A14 5G (Exynos 1330 / s5e8535),
+ * while preserving complete sysfs interfaces for HKTweaks and power management.
  *
  * Copyright (C) 2026 NightKernel Project
  */
@@ -19,10 +19,13 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/mutex.h>
+#include <linux/thermal.h>
+#include <linux/workqueue.h>
 #include <soc/samsung/cal-if.h>
 
 #define CPUCL0_CAL_ID 0xb040002
 #define CPUCL1_CAL_ID 0xb040003
+#define G3D_CAL_ID    0xb040008
 
 static struct kobject *mp_cpufreq_kobj;
 static struct kobject *power_kobj_ref;
@@ -32,12 +35,81 @@ static int dvfs_mode = 1; /* 0: Battery, 1: Balance, 2: Performance */
 static unsigned int little_thermal_temp = 65000;
 static unsigned int cluster1_max_freq = 2400000;
 
+/* Hardware Undervolt Percent Margins (Safe: CL0 -3%, CL1 -2%, G3D -2%) */
+static int cluster0_volt_margin = -3;
+static int cluster1_volt_margin = -2;
+static int gpu_volt_margin = -2;
+
+/* Relaxed Thermal Trip Points (mC: GPU 72C/82C, BIG 78C/90C, LITTLE 78C/90C) */
+static unsigned int gpu_thermal_trip1 = 72000;
+static unsigned int gpu_thermal_trip2 = 82000;
+static unsigned int big_thermal_trip1 = 78000;
+static unsigned int big_thermal_trip2 = 90000;
+static unsigned int little_thermal_trip1 = 78000;
+static unsigned int little_thermal_trip2 = 90000;
+
+static struct delayed_work mp_init_work;
+
 /* Cached tables for clusters if CAL table is dynamically adjusted */
 struct dvfs_rate_volt cl0_table[48];
 int cl0_table_size = 0;
 
 struct dvfs_rate_volt cl1_table[48];
 int cl1_table_size = 0;
+
+/* Apply hardware undervolt margins directly to Exynos ACPM */
+static void apply_hardware_volt_margins(void)
+{
+	void (*cal_set_margin_fn)(unsigned int id, int volt) = NULL;
+
+	cal_set_margin_fn = __symbol_get("cal_dfs_set_volt_margin");
+	if (cal_set_margin_fn) {
+		cal_set_margin_fn(CPUCL1_CAL_ID, cluster1_volt_margin);
+		cal_set_margin_fn(CPUCL0_CAL_ID, cluster0_volt_margin);
+		cal_set_margin_fn(G3D_CAL_ID, gpu_volt_margin);
+		__symbol_put("cal_dfs_set_volt_margin");
+		pr_info("mp-cpufreq: hardware undervolt applied via ACPM: CL1=%d%% CL0=%d%% GPU=%d%%\n",
+			cluster1_volt_margin, cluster0_volt_margin, gpu_volt_margin);
+	} else {
+		pr_debug("mp-cpufreq: cal_dfs_set_volt_margin symbol not yet available\n");
+	}
+}
+
+/* Apply direct in-kernel thermal trip points to G3D, BIG, and LITTLE zones */
+static void apply_thermal_trip_points(void)
+{
+	struct thermal_zone_device *tz;
+
+	tz = thermal_zone_get_zone_by_name("G3D");
+	if (tz && tz->ops && tz->ops->set_trip_temp) {
+		tz->ops->set_trip_temp(tz, 1, gpu_thermal_trip1);
+		tz->ops->set_trip_temp(tz, 2, gpu_thermal_trip2);
+		pr_info("mp-cpufreq: G3D thermal trips configured to %u / %u mC\n",
+			gpu_thermal_trip1, gpu_thermal_trip2);
+	}
+
+	tz = thermal_zone_get_zone_by_name("BIG");
+	if (tz && tz->ops && tz->ops->set_trip_temp) {
+		tz->ops->set_trip_temp(tz, 1, big_thermal_trip1);
+		tz->ops->set_trip_temp(tz, 2, big_thermal_trip2);
+		pr_info("mp-cpufreq: BIG thermal trips configured to %u / %u mC\n",
+			big_thermal_trip1, big_thermal_trip2);
+	}
+
+	tz = thermal_zone_get_zone_by_name("LITTLE");
+	if (tz && tz->ops && tz->ops->set_trip_temp) {
+		tz->ops->set_trip_temp(tz, 1, little_thermal_trip1);
+		tz->ops->set_trip_temp(tz, 2, little_thermal_trip2);
+		pr_info("mp-cpufreq: LITTLE thermal trips configured to %u / %u mC\n",
+			little_thermal_trip1, little_thermal_trip2);
+	}
+}
+
+static void mp_delayed_work_fn(struct work_struct *work)
+{
+	apply_hardware_volt_margins();
+	apply_thermal_trip_points();
+}
 
 static void init_cluster_tables(void)
 {
@@ -252,6 +324,126 @@ static ssize_t cluster1_all_cores_max_freq_store(struct kobject *kobj, struct ko
 	return count;
 }
 
+/* Hardware Undervolt Margin Sysfs Controls */
+static ssize_t cluster0_volt_margin_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%d\n", cluster0_volt_margin);
+}
+
+static ssize_t cluster0_volt_margin_store(struct kobject *kobj, struct kobj_attribute *attr,
+					 const char *buf, size_t count)
+{
+	int val;
+	if (kstrtoint(buf, 10, &val) == 0) {
+		if (val >= -100 && val <= 100) {
+			cluster0_volt_margin = val;
+			apply_hardware_volt_margins();
+		}
+	}
+	return count;
+}
+
+static ssize_t cluster1_volt_margin_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%d\n", cluster1_volt_margin);
+}
+
+static ssize_t cluster1_volt_margin_store(struct kobject *kobj, struct kobj_attribute *attr,
+					 const char *buf, size_t count)
+{
+	int val;
+	if (kstrtoint(buf, 10, &val) == 0) {
+		if (val >= -100 && val <= 100) {
+			cluster1_volt_margin = val;
+			apply_hardware_volt_margins();
+		}
+	}
+	return count;
+}
+
+static ssize_t gpu_volt_margin_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%d\n", gpu_volt_margin);
+}
+
+static ssize_t gpu_volt_margin_store(struct kobject *kobj, struct kobj_attribute *attr,
+				    const char *buf, size_t count)
+{
+	int val;
+	if (kstrtoint(buf, 10, &val) == 0) {
+		if (val >= -100 && val <= 100) {
+			gpu_volt_margin = val;
+			apply_hardware_volt_margins();
+		}
+	}
+	return count;
+}
+
+/* Thermal Trip Point Sysfs Controls */
+static ssize_t gpu_thermal_trip1_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%u\n", gpu_thermal_trip1);
+}
+
+static ssize_t gpu_thermal_trip1_store(struct kobject *kobj, struct kobj_attribute *attr,
+				      const char *buf, size_t count)
+{
+	unsigned int val;
+	if (kstrtouint(buf, 10, &val) == 0) {
+		gpu_thermal_trip1 = val;
+		apply_thermal_trip_points();
+	}
+	return count;
+}
+
+static ssize_t gpu_thermal_trip2_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%u\n", gpu_thermal_trip2);
+}
+
+static ssize_t gpu_thermal_trip2_store(struct kobject *kobj, struct kobj_attribute *attr,
+				      const char *buf, size_t count)
+{
+	unsigned int val;
+	if (kstrtouint(buf, 10, &val) == 0) {
+		gpu_thermal_trip2 = val;
+		apply_thermal_trip_points();
+	}
+	return count;
+}
+
+static ssize_t big_thermal_trip1_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%u\n", big_thermal_trip1);
+}
+
+static ssize_t big_thermal_trip1_store(struct kobject *kobj, struct kobj_attribute *attr,
+				      const char *buf, size_t count)
+{
+	unsigned int val;
+	if (kstrtouint(buf, 10, &val) == 0) {
+		big_thermal_trip1 = val;
+		apply_thermal_trip_points();
+	}
+	return count;
+}
+
+static ssize_t big_thermal_trip2_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%u\n", big_thermal_trip2);
+}
+
+static ssize_t big_thermal_trip2_store(struct kobject *kobj, struct kobj_attribute *attr,
+				      const char *buf, size_t count)
+{
+	unsigned int val;
+	if (kstrtouint(buf, 10, &val) == 0) {
+		big_thermal_trip2 = val;
+		apply_thermal_trip_points();
+	}
+	return count;
+}
+
 /* /sys/power/little_thermal_temp */
 static ssize_t little_thermal_temp_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
@@ -279,6 +471,27 @@ static struct kobj_attribute cpu_dvfs_mode_control_attr =
 static struct kobj_attribute cluster1_all_cores_max_freq_attr =
 	__ATTR(cluster1_all_cores_max_freq, 0644, cluster1_all_cores_max_freq_show, cluster1_all_cores_max_freq_store);
 
+static struct kobj_attribute cluster0_volt_margin_attr =
+	__ATTR(cluster0_volt_margin, 0644, cluster0_volt_margin_show, cluster0_volt_margin_store);
+
+static struct kobj_attribute cluster1_volt_margin_attr =
+	__ATTR(cluster1_volt_margin, 0644, cluster1_volt_margin_show, cluster1_volt_margin_store);
+
+static struct kobj_attribute gpu_volt_margin_attr =
+	__ATTR(gpu_volt_margin, 0644, gpu_volt_margin_show, gpu_volt_margin_store);
+
+static struct kobj_attribute gpu_thermal_trip1_attr =
+	__ATTR(gpu_thermal_trip1, 0644, gpu_thermal_trip1_show, gpu_thermal_trip1_store);
+
+static struct kobj_attribute gpu_thermal_trip2_attr =
+	__ATTR(gpu_thermal_trip2, 0644, gpu_thermal_trip2_show, gpu_thermal_trip2_store);
+
+static struct kobj_attribute big_thermal_trip1_attr =
+	__ATTR(big_thermal_trip1, 0644, big_thermal_trip1_show, big_thermal_trip1_store);
+
+static struct kobj_attribute big_thermal_trip2_attr =
+	__ATTR(big_thermal_trip2, 0644, big_thermal_trip2_show, big_thermal_trip2_store);
+
 static struct kobj_attribute little_thermal_temp_attr =
 	__ATTR(little_thermal_temp, 0644, little_thermal_temp_show, little_thermal_temp_store);
 
@@ -287,6 +500,13 @@ static struct attribute *mp_cpufreq_attrs[] = {
 	&cluster1_volt_table_attr.attr,
 	&cpu_dvfs_mode_control_attr.attr,
 	&cluster1_all_cores_max_freq_attr.attr,
+	&cluster0_volt_margin_attr.attr,
+	&cluster1_volt_margin_attr.attr,
+	&gpu_volt_margin_attr.attr,
+	&gpu_thermal_trip1_attr.attr,
+	&gpu_thermal_trip2_attr.attr,
+	&big_thermal_trip1_attr.attr,
+	&big_thermal_trip2_attr.attr,
 	NULL,
 };
 
@@ -339,7 +559,11 @@ static int __init mp_cpufreq_init(void)
 
 	init_cluster_tables();
 
-	pr_info("mp-cpufreq: initialized HKTweaks voltage & DVFS interfaces successfully\n");
+	/* Schedule delayed hardware undervolt and thermal trip enforcement */
+	INIT_DELAYED_WORK(&mp_init_work, mp_delayed_work_fn);
+	schedule_delayed_work(&mp_init_work, msecs_to_jiffies(4000));
+
+	pr_info("mp-cpufreq: initialized in-kernel undervolt, thermal trips, and HKTweaks interfaces successfully\n");
 	return 0;
 }
 
@@ -347,4 +571,4 @@ late_initcall(mp_cpufreq_init);
 
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("NightKernel Project");
-MODULE_DESCRIPTION("Samsung Exynos mp-cpufreq sysfs interface for HKTweaks");
+MODULE_DESCRIPTION("Samsung Exynos mp-cpufreq in-kernel undervolt & thermal control driver");
