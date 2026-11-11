@@ -601,6 +601,14 @@ static void wakeup_source_activate(struct wakeup_source *ws)
 			"unregistered wakeup source\n"))
 		return;
 
+#if IS_ENABLED(CONFIG_BOEFFLA_WL_BLOCKER)
+	{
+		extern bool boeffla_wl_blocker_is_blocked(const char *name);
+		if (boeffla_wl_blocker_is_blocked(ws->name))
+			return;
+	}
+#endif
+
 	ws->active = true;
 	ws->active_count++;
 	ws->last_time = ktime_get();

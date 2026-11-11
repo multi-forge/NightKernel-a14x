@@ -479,6 +479,49 @@ GPEX_STATIC ssize_t show_gpu_freq_table(char *buf)
 }
 CREATE_SYSFS_KOBJECT_READ_FUNCTION(show_gpu_freq_table)
 
+GPEX_STATIC ssize_t show_max_clock(char *buf)
+{
+	return show_max_lock_dvfs_kobj(buf);
+}
+CREATE_SYSFS_DEVICE_READ_FUNCTION(show_max_clock)
+
+GPEX_STATIC ssize_t show_min_clock(char *buf)
+{
+	return show_min_lock_dvfs_kobj(buf);
+}
+CREATE_SYSFS_DEVICE_READ_FUNCTION(show_min_clock)
+
+GPEX_STATIC ssize_t show_volt_table(char *buf)
+{
+	int i;
+	int len = 0;
+	int min_clock_idx = gpex_clock_get_table_idx(clk_info->gpu_min_clock);
+
+	for (i = gpex_clock_get_table_idx(clk_info->gpu_max_clock); i <= min_clock_idx; i++) {
+		len += snprintf(buf + len, PAGE_SIZE - len, "%d %d\n",
+				clk_info->table[i].clock, clk_info->table[i].voltage);
+	}
+	return len;
+}
+
+GPEX_STATIC ssize_t set_volt_table(const char *buf, size_t count)
+{
+	int clock = 0, volt = 0;
+	int idx;
+
+	if (sscanf(buf, "%d %d", &clock, &volt) != 2)
+		return -EINVAL;
+
+	idx = gpex_clock_get_table_idx(clock);
+	if (idx >= 0 && idx < clk_info->table_size) {
+		clk_info->table[idx].voltage = volt;
+		cal_dfs_set_volt(clk_info->cal_id, clock, volt);
+	}
+	return count;
+}
+CREATE_SYSFS_DEVICE_READ_FUNCTION(show_volt_table)
+CREATE_SYSFS_DEVICE_WRITE_FUNCTION(set_volt_table)
+
 int gpex_clock_sysfs_init(struct _clock_info *_clk_info)
 {
 	clk_info = _clk_info;
@@ -490,6 +533,9 @@ int gpex_clock_sysfs_init(struct _clock_info *_clk_info)
 	GPEX_UTILS_SYSFS_DEVICE_FILE_ADD(dvfs_min_lock, show_min_lock_dvfs, set_min_lock_dvfs);
 	GPEX_UTILS_SYSFS_DEVICE_FILE_ADD_RO(dvfs_max_lock_status, show_max_lock_status);
 	GPEX_UTILS_SYSFS_DEVICE_FILE_ADD_RO(dvfs_min_lock_status, show_min_lock_status);
+	GPEX_UTILS_SYSFS_DEVICE_FILE_ADD(max_clock, show_max_clock, set_max_lock_dvfs);
+	GPEX_UTILS_SYSFS_DEVICE_FILE_ADD(min_clock, show_min_clock, set_min_lock_dvfs);
+	GPEX_UTILS_SYSFS_DEVICE_FILE_ADD(volt_table, show_volt_table, set_volt_table);
 
 	GPEX_UTILS_SYSFS_KOBJECT_FILE_ADD(gpu_max_clock, show_max_lock_dvfs_kobj,
 					  set_max_lock_dvfs);

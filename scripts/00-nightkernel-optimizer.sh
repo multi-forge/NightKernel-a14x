@@ -132,7 +132,15 @@ apply_nextgen_performance_tunables() {
     write_val /proc/sys/net/ipv4/tcp_low_latency 1
 
     # --------------------------------------------------------------------------
-    # 6. Persistencia de Nos Criticos (/dev/ntsync) & Teto GPU (1.144 GHz)
+    # 6. Dynamic Fsync: Safe Default (0 = Inactive, toggle exported)
+    # --------------------------------------------------------------------------
+    if [ -e /sys/kernel/dyn_fsync/Dyn_fsync_active ]; then
+        chmod 0666 /sys/kernel/dyn_fsync/Dyn_fsync_active 2>/dev/null || true
+        write_val /sys/kernel/dyn_fsync/Dyn_fsync_active 0
+    fi
+
+    # --------------------------------------------------------------------------
+    # 7. Persistencia de Nos Criticos (/dev/ntsync) & Teto GPU (1.144 GHz)
     # --------------------------------------------------------------------------
     if [ -e /dev/ntsync ]; then
         chmod 0666 /dev/ntsync 2>/dev/null || true
@@ -141,9 +149,11 @@ apply_nextgen_performance_tunables() {
 
     write_val /sys/kernel/gpu/gpu_max_clock 1144000
     write_val /sys/kernel/gpu/gpu_min_clock 208000
+    write_val /sys/devices/platform/10300000.mali/max_clock 1144000
+    write_val /sys/devices/platform/10300000.mali/min_clock 208000
 
     # --------------------------------------------------------------------------
-    # 7. Barramento MIF (Memoria) com Base em 2.288 GHz & Carregamento Direto
+    # 8. Barramento MIF (Memoria) com Base em 2.288 GHz & Carregamento Direto
     # --------------------------------------------------------------------------
     mount -t debugfs none /sys/kernel/debug 2>/dev/null || true
     if [ -d /sys/kernel/debug/vclk ]; then
@@ -153,14 +163,64 @@ apply_nextgen_performance_tunables() {
     write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 2288000
     write_val /sys/class/devfreq/17000010.devfreq_mif/exynos_data/debug_scaling_devfreq_min 2288000
 
-    if [ -e /sys/devices/battery/power_supply/battery/store_mode ]; then
-        chmod 0664 /sys/devices/battery/power_supply/battery/store_mode 2>/dev/null || true
+    # --------------------------------------------------------------------------
+    # 9. HKTweaks Symlinks & Node Permissions
+    # --------------------------------------------------------------------------
+    # Battery Store Mode symlink & permissions
+    if [ ! -d /sys/devices/battery/power_supply/battery ]; then
+        mkdir -p /sys/devices/battery/power_supply 2>/dev/null || true
+        ln -sf /sys/class/power_supply/battery /sys/devices/battery/power_supply/battery 2>/dev/null || true
     fi
-    if [ -e /sys/class/power_supply/battery/store_mode ]; then
-        chmod 0664 /sys/class/power_supply/battery/store_mode 2>/dev/null || true
+    chmod 0666 /sys/devices/battery/power_supply/battery/store_mode 2>/dev/null || true
+    chmod 0666 /sys/class/power_supply/battery/store_mode 2>/dev/null || true
+    chmod 0666 /sys/module/sec_battery/parameters/store_mode_max 2>/dev/null || true
+    chmod 0666 /sys/module/sec_battery/parameters/store_mode_min 2>/dev/null || true
+
+    # Devfreq Bus aliases for HKTweaks
+    if [ -d /sys/class/devfreq/17000040.devfreq_disp ] && [ ! -e /sys/class/devfreq/17000030.devfreq_disp ]; then
+        ln -sf /sys/class/devfreq/17000040.devfreq_disp /sys/class/devfreq/17000030.devfreq_disp 2>/dev/null || true
     fi
-    if [ -e /sys/class/power_supply/battery/batt_slate_mode ]; then
-        chmod 0664 /sys/class/power_supply/battery/batt_slate_mode 2>/dev/null || true
+    if [ -d /sys/class/devfreq/17000060.devfreq_cam ] && [ ! -e /sys/class/devfreq/17000040.devfreq_cam ]; then
+        ln -sf /sys/class/devfreq/17000060.devfreq_cam /sys/class/devfreq/17000040.devfreq_cam 2>/dev/null || true
+    fi
+
+    # Devfreq volt_table permissions
+    chmod 0666 /sys/class/devfreq/*/volt_table 2>/dev/null || true
+
+    # Mali GPU aliases for HKTweaks
+    if [ -d /sys/devices/platform/10300000.mali ]; then
+        [ ! -e /sys/devices/platform/17500000.mali ] && ln -sf /sys/devices/platform/10300000.mali /sys/devices/platform/17500000.mali 2>/dev/null || true
+        [ ! -e /sys/devices/14ac0000.mali ] && ln -sf /sys/devices/platform/10300000.mali /sys/devices/14ac0000.mali 2>/dev/null || true
+        chmod 0666 /sys/devices/platform/10300000.mali/* 2>/dev/null || true
+    fi
+
+    # CPU Voltages (mp-cpufreq) permissions
+    if [ -d /sys/devices/system/cpu/cpufreq/mp-cpufreq ]; then
+        chmod 0666 /sys/devices/system/cpu/cpufreq/mp-cpufreq/* 2>/dev/null || true
+    fi
+    if [ -e /sys/power/little_thermal_temp ]; then
+        chmod 0666 /sys/power/little_thermal_temp 2>/dev/null || true
+    fi
+
+    # Boeffla Wakelock Blocker permissions
+    if [ -d /sys/devices/virtual/misc/boeffla_wakelock_blocker ]; then
+        chmod 0666 /sys/devices/virtual/misc/boeffla_wakelock_blocker/* 2>/dev/null || true
+    fi
+
+    # MoroSound / Sound Control permissions
+    if [ -d /sys/devices/virtual/misc/moro_sound ]; then
+        chmod 0666 /sys/devices/virtual/misc/moro_sound/* 2>/dev/null || true
+    fi
+    if [ -d /sys/kernel/sound_control ]; then
+        chmod 0666 /sys/kernel/sound_control/* 2>/dev/null || true
+    fi
+
+    # --------------------------------------------------------------------------
+    # 10. Spectrum Profiles Initialization & Watcher
+    # --------------------------------------------------------------------------
+    resetprop -n spectrum.support 1 2>/dev/null || true
+    if [ -z "$(getprop persist.spectrum.profile)" ]; then
+        resetprop -n persist.spectrum.profile 0 2>/dev/null || true
     fi
 
     log "[+] Next-Gen Performance tunables applied successfully."
@@ -213,7 +273,49 @@ log "[+] Total packages disabled: $DISABLED_COUNT"
 log "[i] Safety Preserved: com.samsung.android.fmm (Find My Mobile)"
 log "[i] Safety Preserved: com.samsung.android.game.gametools"
 
-# 4. Autonomous SSHD Watchdog Daemon
+# 4. Spectrum Profiles Dynamic Listener Daemon
+(
+    LAST_PROFILE="-1"
+    while true; do
+        CUR_PROFILE="$(getprop persist.spectrum.profile)"
+        if [ "$CUR_PROFILE" != "$LAST_PROFILE" ]; then
+            LAST_PROFILE="$CUR_PROFILE"
+            case "$CUR_PROFILE" in
+                0) # Balance
+                    write_val /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor schedutil
+                    write_val /sys/devices/system/cpu/cpu6/cpufreq/scaling_governor schedutil
+                    write_val /sys/kernel/gpu/gpu_max_clock 949000
+                    write_val /sys/devices/platform/10300000.mali/max_clock 949000
+                    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 2288000
+                    ;;
+                1) # Performance
+                    write_val /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor schedutil
+                    write_val /sys/devices/system/cpu/cpu6/cpufreq/scaling_governor performance
+                    write_val /sys/kernel/gpu/gpu_max_clock 1144000
+                    write_val /sys/devices/platform/10300000.mali/max_clock 1144000
+                    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 2288000
+                    ;;
+                2) # Battery
+                    write_val /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor powersave
+                    write_val /sys/devices/system/cpu/cpu6/cpufreq/scaling_governor powersave
+                    write_val /sys/kernel/gpu/gpu_max_clock 611000
+                    write_val /sys/devices/platform/10300000.mali/max_clock 611000
+                    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 1541000
+                    ;;
+                3) # Gaming
+                    write_val /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor performance
+                    write_val /sys/devices/system/cpu/cpu6/cpufreq/scaling_governor performance
+                    write_val /sys/kernel/gpu/gpu_max_clock 1144000
+                    write_val /sys/devices/platform/10300000.mali/max_clock 1144000
+                    write_val /sys/class/devfreq/17000010.devfreq_mif/min_freq 2288000
+                    ;;
+            esac
+        fi
+        sleep 3
+    done
+) &
+
+# 5. Autonomous SSHD Watchdog Daemon
 log "[*] Spawning autonomous SSHD watchdog daemon..."
 (
     while true; do

@@ -909,6 +909,55 @@ static ssize_t show_exynos_devfreq_info(struct device *dev,
 	return count;
 }
 
+static ssize_t devfreq_volt_table_show(struct device *dev,
+				       struct device_attribute *attr, char *buf)
+{
+	struct device *parent = dev->parent;
+	struct platform_device *pdev = container_of(parent, struct platform_device, dev);
+	struct exynos_devfreq_data *data = platform_get_drvdata(pdev);
+	ssize_t count = 0;
+	int i;
+
+	if (!data || !data->opp_list)
+		return -EINVAL;
+
+	for (i = 0; i < data->max_state; i++) {
+		count += scnprintf(buf + count, PAGE_SIZE - count, "%u %u\n",
+				   data->opp_list[i].rate, data->opp_list[i].volt);
+	}
+	return count;
+}
+
+static ssize_t devfreq_volt_table_store(struct device *dev,
+					struct device_attribute *attr,
+					const char *buf, size_t count)
+{
+	struct device *parent = dev->parent;
+	struct platform_device *pdev = container_of(parent, struct platform_device, dev);
+	struct exynos_devfreq_data *data = platform_get_drvdata(pdev);
+	u32 freq = 0, volt = 0;
+	int i;
+
+	if (!data || !data->opp_list)
+		return -EINVAL;
+
+	if (sscanf(buf, "%u %u", &freq, &volt) != 2)
+		return -EINVAL;
+
+	for (i = 0; i < data->max_state; i++) {
+		if (data->opp_list[i].rate == freq) {
+			data->opp_list[i].volt = volt;
+			dev_pm_opp_add(data->dev, freq, volt);
+			dev_info(data->dev, "devfreq %s: updated freq %u to %u uV\n",
+				 dev_name(dev), freq, volt);
+			return count;
+		}
+	}
+
+	return -EINVAL;
+}
+static DEVICE_ATTR(volt_table, 0644, devfreq_volt_table_show, devfreq_volt_table_store);
+
 static ssize_t show_exynos_devfreq_get_freq(struct device *dev,
 					    struct device_attribute *attr, char *buf)
 {
@@ -2551,6 +2600,17 @@ static int exynos_devfreq_probe(struct platform_device *pdev)
 	ret = sysfs_create_file(&data->devfreq->dev.kobj, &dev_attr_time_in_state.attr);
 	if (ret)
 		dev_warn(data->dev, "failed create sysfs for devfreq time_in_state\n");
+
+	ret = sysfs_create_file(&data->devfreq->dev.kobj, &dev_attr_volt_table.attr);
+	if (ret)
+		dev_warn(data->dev, "failed create sysfs for devfreq volt_table\n");
+
+	if (data->devfreq->dev.kobj.parent) {
+		if (strstr(dev_name(data->dev), "devfreq_disp"))
+			sysfs_create_link(data->devfreq->dev.kobj.parent, &data->devfreq->dev.kobj, "17000030.devfreq_disp");
+		else if (strstr(dev_name(data->dev), "devfreq_cam"))
+			sysfs_create_link(data->devfreq->dev.kobj.parent, &data->devfreq->dev.kobj, "17000040.devfreq_cam");
+	}
 
 #if IS_ENABLED(CONFIG_ARM_EXYNOS_DEVFREQ_DEBUG)
 	ret = sysfs_create_group(&data->devfreq->dev.kobj, &exynos_devfreq_attr_group);

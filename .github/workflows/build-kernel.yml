@@ -109,6 +109,11 @@ jobs:
           scripts/config --enable CONFIG_TCP_CONG_BBR --set-str CONFIG_DEFAULT_TCP_CONG "bbr"
           scripts/config --enable CONFIG_NET_SCH_FQ
           scripts/config --enable CONFIG_BPF_JIT_ALWAYS_ON
+          scripts/config --enable CONFIG_CPU_FREQ_GOV_ONDEMAND --enable CONFIG_CPU_FREQ_GOV_USERSPACE
+          scripts/config --enable CONFIG_TCP_CONG_ADVANCED --enable CONFIG_TCP_CONG_WESTWOOD --enable CONFIG_TCP_CONG_HTCP --enable CONFIG_TCP_CONG_BIC --enable CONFIG_TCP_CONG_VEGAS --enable CONFIG_TCP_CONG_BBR
+          scripts/config --enable CONFIG_WIREGUARD
+          scripts/config --enable CONFIG_BOEFFLA_WL_BLOCKER
+          scripts/config --enable CONFIG_MORO_SOUND
           scripts/config --enable CONFIG_MODULES --enable CONFIG_KPROBES --enable CONFIG_DEBUG_FS --enable CONFIG_CPU_IDLE_GOV_TEO
           make olddefconfig
           ccache -z

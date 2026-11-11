@@ -522,4 +522,17 @@ source "drivers/misc/pvpanic/Kconfig"
 source "drivers/misc/samsung/Kconfig"
 source "drivers/misc/tzdev/Kconfig"
 source "drivers/misc/tui/Kconfig"
+
+config BOEFFLA_WL_BLOCKER
+	tristate "Boeffla Wakelock Blocker"
+	default y
+	help
+	  Allows userspace to selectively block kernel wakelocks.
+
+config MORO_SOUND
+	tristate "MoroSound and Sound Control for HKTweaks"
+	default y
+	help
+	  Exposes headphone, speaker and 5-band EQ controls for HKTweaks.
+
 endmenu

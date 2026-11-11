@@ -91,6 +91,7 @@ obj-$(CONFIG_ARM_TEGRA194_CPUFREQ)	+= tegra194-cpufreq.o
 obj-$(CONFIG_ARM_TI_CPUFREQ)		+= ti-cpufreq.o
 obj-$(CONFIG_ARM_VEXPRESS_SPC_CPUFREQ)	+= vexpress-spc-cpufreq.o
 obj-$(CONFIG_ARM_EXYNOS_ACME)		+= exynos-acme.o
+obj-$(CONFIG_ARM_EXYNOS_ACME)		+= mp_cpufreq.o
 obj-$(CONFIG_ARM_FREQ_QOS_TRACER)	+= freq-qos-tracer.o
 obj-$(CONFIG_ARM_EXYNOS_DSU_FREQ)	+= exynos-dsufreq.o
 
