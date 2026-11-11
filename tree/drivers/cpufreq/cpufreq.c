@@ -112,7 +112,8 @@ bool have_governor_per_policy(void)
 }
 EXPORT_SYMBOL_GPL(have_governor_per_policy);
 
-static struct kobject *cpufreq_global_kobject;
+struct kobject *cpufreq_global_kobject;
+EXPORT_SYMBOL_GPL(cpufreq_global_kobject);
 
 struct kobject *get_governor_parent_kobj(struct cpufreq_policy *policy)
 {

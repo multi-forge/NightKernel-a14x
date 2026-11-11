@@ -294,22 +294,24 @@ static const struct attribute_group mp_cpufreq_group = {
 	.attrs = mp_cpufreq_attrs,
 };
 
+extern struct kobject *cpufreq_global_kobject;
+
 static int __init mp_cpufreq_init(void)
 {
 	int ret;
-	struct kobject *cpufreq_kobj = NULL;
-
-	/* Find cpufreq parent kobject under /sys/devices/system/cpu/cpufreq */
-	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
-	if (policy && policy->kobj.parent) {
-		cpufreq_kobj = policy->kobj.parent;
-		cpufreq_cpu_put(policy);
-	}
+	struct kobject *cpufreq_kobj = cpufreq_global_kobject;
 
 	if (!cpufreq_kobj) {
-		/* Fallback: create under /sys/kernel if cpufreq not located */
-		cpufreq_kobj = kernel_kobj;
+		/* Fallback: try from cpu0 policy parent if available */
+		struct cpufreq_policy *policy = cpufreq_cpu_get(0);
+		if (policy && policy->kobj.parent) {
+			cpufreq_kobj = policy->kobj.parent;
+			cpufreq_cpu_put(policy);
+		}
 	}
+
+	if (!cpufreq_kobj)
+		cpufreq_kobj = kernel_kobj;
 
 	mp_cpufreq_kobj = kobject_create_and_add("mp-cpufreq", cpufreq_kobj);
 	if (!mp_cpufreq_kobj) {
@@ -323,6 +325,9 @@ static int __init mp_cpufreq_init(void)
 		kobject_put(mp_cpufreq_kobj);
 		return ret;
 	}
+
+	/* Also create symlink in /sys/kernel/mp-cpufreq for compatibility */
+	sysfs_create_link(kernel_kobj, mp_cpufreq_kobj, "mp-cpufreq");
 
 	/* Also create little_thermal_temp under /sys/power */
 	power_kobj_ref = power_kobj;
