@@ -132,12 +132,15 @@ apply_nextgen_performance_tunables() {
     write_val /proc/sys/net/ipv4/tcp_low_latency 1
 
     # --------------------------------------------------------------------------
-    # 6. Persistencia de Nos Criticos (/dev/ntsync)
+    # 6. Persistencia de Nos Criticos (/dev/ntsync) & Teto GPU (1.144 GHz)
     # --------------------------------------------------------------------------
     if [ -e /dev/ntsync ]; then
         chmod 0666 /dev/ntsync 2>/dev/null || true
         chcon u:object_r:gpu_device:s0 /dev/ntsync 2>/dev/null || true
     fi
+
+    write_val /sys/kernel/gpu/gpu_max_clock 1144000
+    write_val /sys/kernel/gpu/gpu_min_clock 208000
 
     log "[+] Next-Gen Performance tunables applied successfully."
 }
